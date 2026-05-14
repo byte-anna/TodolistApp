@@ -8,8 +8,9 @@ data class Task(
     val userId: String,
     val title: String,
     val isDone: Boolean,
-    val priority: Int = 1,
-    val dueDate: String?,
-    val folderId: String?,
-    val createdAt: String
+    val priority: Int,
+    val dueDate: String? = null,  // ✅ Добавь ? и = null
+    val createdAt: String? = null, // ✅ Добавь ? и = null
+    val folderId: String? = null,
+    val isShared: Boolean = false
 )

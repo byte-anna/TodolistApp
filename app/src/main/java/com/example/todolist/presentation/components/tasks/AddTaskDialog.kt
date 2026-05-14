@@ -19,12 +19,13 @@ fun AddTaskDialog(
     initialPriority: Int,
     initialDueDate: String? = null,
     isEdit: Boolean,
-    onConfirm: (String, Int, String?) -> Unit,  // ✅ 3 параметра
+    onConfirm: (String, Int, String?, Boolean) -> Unit,  // ✅ 3 параметра
     onDismiss: () -> Unit
 ) {
     var title by remember { mutableStateOf(initialTitle) }
     var priority by remember { mutableIntStateOf(initialPriority) }
     var dueDate by remember { mutableStateOf(initialDueDate) }
+    var shareToFeed by remember { mutableStateOf(false) }
 
     // DatePicker состояние
     val datePickerState = rememberDatePickerState(
@@ -94,15 +95,34 @@ fun AddTaskDialog(
                     PriorityButton("Средний", Color(0xFFFFA500), priority == 2) { priority = 2 }
                     PriorityButton("Низкий", Color.Green, priority == 3) { priority = 3 }
                 }
+
+                Spacer(Modifier.height(12.dp))
+                Divider()
+                Spacer(Modifier.height(8.dp))
+
+// ✅ Чекбокс "Поделиться"
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Checkbox(
+                        checked = shareToFeed,
+                        onCheckedChange = { shareToFeed = it }
+                    )
+                    Text(
+                        text = "📢 Опубликовать как достижение",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
             }
         },
         confirmButton = {
             Button(
-                onClick = { if (title.isNotBlank()) onConfirm(title.trim(), priority, dueDate) },
+                onClick = {
+                    if (title.isNotBlank()) {
+                        // ✅ Передаём shareToFeed последним параметром
+                        onConfirm(title.trim(), priority, dueDate, shareToFeed)
+                    }
+                },
                 enabled = title.isNotBlank()
-            ) {
-                Text(if (isEdit) "Сохранить" else "Добавить")
-            }
+            ) { Text(if (isEdit) "Сохранить" else "Добавить") }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) { Text("Отмена") }

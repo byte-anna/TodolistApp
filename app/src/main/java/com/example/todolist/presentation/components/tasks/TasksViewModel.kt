@@ -57,12 +57,17 @@ class TasksViewModel(
         }
     }
 
-    fun addTask(title: String, priority: Int, dueDate: String? = null, folderId: String? = null) {
+    fun addTask(title: String, priority: Int, dueDate: String? = null, folderId: String? = null, shareToFeed: Boolean = false) {
         viewModelScope.launch {
             try {
-                val createdTask = api.createTask(userId, title, priority, dueDate, folderId)  // ✅ Передаём folderId
+                val createdTask = api.createTask(userId, title, priority, dueDate, folderId)
                 loadTasks()
                 closeDialog()
+
+                // ✅ Если чекбокс был включён → создаём пост
+                if (shareToFeed) {
+                    api.createPost(userId, createdTask.title, createdTask.id)
+                }
 
                 if (dueDate != null) {
                     NotificationScheduler.scheduleReminder(

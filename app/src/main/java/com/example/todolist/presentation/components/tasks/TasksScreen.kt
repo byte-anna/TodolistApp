@@ -24,6 +24,8 @@ import com.example.todolist.domain.model.Task
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.platform.LocalContext
 import android.app.Application
+import androidx.compose.material.icons.filled.Notifications
+import com.example.todolist.presentation.components.feed.FeedScreen
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -33,6 +35,7 @@ fun TasksScreen(
     onLogout: () -> Unit
 ) {
     val appContext = LocalContext.current.applicationContext as Application
+    var showFeed by remember { mutableStateOf(false) }
 
     val viewModel: TasksViewModel = viewModel(
         factory = object : androidx.lifecycle.ViewModelProvider.Factory {
@@ -53,6 +56,14 @@ fun TasksScreen(
             TopAppBar(
                 title = { Text("Мои задачи") },
                 actions = {
+                    // ✅ Кнопка ленты
+                    IconButton(onClick = { showFeed = true }) {
+                        Icon(
+                            Icons.Default.Notifications,
+                            contentDescription = "Лента достижений"
+                        )
+                    }
+
                     TextButton(onClick = onLogout) {
                         Text("Выйти")
                     }
@@ -198,17 +209,28 @@ fun TasksScreen(
                 initialPriority = task.priority,
                 initialDueDate = task.dueDate,
                 isEdit = isEdit,
-                onConfirm = { title, priority, dueDate ->
+                // ✅ Добавили shareToFeed (4-й параметр)
+                onConfirm = { title, priority, dueDate, shareToFeed ->
                     if (isEdit) {
                         viewModel.updateTask(title, priority, dueDate, task.folderId)
                     } else {
-                        viewModel.addTask(title, priority, dueDate, null)
+                        // ✅ Передаём shareToFeed в ViewModel
+                        viewModel.addTask(title, priority, dueDate, null, shareToFeed)
                     }
                 },
                 onDismiss = { viewModel.closeDialog() }
             )
         }
     }
+
+    if (showFeed) {
+        FeedScreen(
+            api = api,
+            onBackClick = { showFeed = false }
+        )
+    }
+
+
 }
 
 @Composable
