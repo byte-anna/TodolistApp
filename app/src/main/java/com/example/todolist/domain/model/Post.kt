@@ -8,5 +8,6 @@ data class Post(
     val userId: String,
     val content: String,
     val taskId: String? = null,
-    val createdAt: String
+    val createdAt: String,
+    val likesCount: Int = 0
 )

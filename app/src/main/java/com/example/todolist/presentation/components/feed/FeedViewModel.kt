@@ -16,7 +16,8 @@ data class FeedUiState(
 )
 
 class FeedViewModel(
-    private val api: TodoApi
+    private val api: TodoApi,
+    private val userId: String  // ✅ Добавили userId
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(FeedUiState())
@@ -40,6 +41,19 @@ class FeedViewModel(
                     error = e.message,
                     isLoading = false
                 )
+            }
+        }
+    }
+
+    // ✅ Новый метод для лайка
+    fun toggleLike(postId: String) {
+        viewModelScope.launch {
+            try {
+                api.toggleLike(postId, userId)
+                // Перезагружаем посты, чтобы обновить счетчик
+                loadPosts()
+            } catch (e: Exception) {
+                println("❌ Error in toggleLike: ${e.message}")
             }
         }
     }
