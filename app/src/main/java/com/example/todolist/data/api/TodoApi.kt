@@ -13,6 +13,7 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import com.example.todolist.domain.model.Task
 import com.example.todolist.domain.model.Folder
+import com.example.todolist.domain.model.Post
 
 class TodoApi(
     private val baseUrl: String = "http://10.0.2.2:8080"
@@ -108,6 +109,26 @@ class TodoApi(
         }
         return response.status == HttpStatusCode.OK
     }
+    suspend fun createPost(userId: String, content: String, taskId: String? = null) {
+        try {
+            println("📢 Создаю пост: userId=$userId, content=$content, taskId=$taskId")
+
+            val response = client.post("$baseUrl/posts") {
+                contentType(ContentType.Application.Json)
+                setBody(CreatePostRequest(userId, content, taskId))
+            }
+
+            println("✅ Пост создан! Status: ${response.status}")
+        } catch (e: Exception) {
+            println("❌ Ошибка создания поста: ${e.message}")
+            e.printStackTrace()
+        }
+    }
+
+    // ✅ Получение ленты постов
+    suspend fun getPosts(): List<Post> {
+        return client.get("$baseUrl/posts").body()
+    }
 }
 
 // === REQUEST/RESPONSE MODELS ===
@@ -142,6 +163,14 @@ data class UpdateTaskRequest(
 
 @Serializable
 data class CreateFolderRequest(val name: String, val color: String = "#6200EE")
+@Serializable
+data class CreatePostRequest(
+    val userId: String,
+    val content: String,
+    val taskId: String? = null
+)
+
+// ✅ Новый метод для создания поста
 
 @Serializable
 data class ErrorResponse(val error: String)
