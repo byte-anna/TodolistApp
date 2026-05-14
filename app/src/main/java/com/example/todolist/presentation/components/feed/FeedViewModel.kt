@@ -45,7 +45,6 @@ class FeedViewModel(
         }
     }
 
-    // ✅ Новый метод для лайка
     fun toggleLike(postId: String) {
         viewModelScope.launch {
             try {
