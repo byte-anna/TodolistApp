@@ -226,6 +226,7 @@ fun TasksScreen(
     if (showFeed) {
         FeedScreen(
             api = api,
+            userId = userId,  // ✅ Добавь эту строку!
             onBackClick = { showFeed = false }
         )
     }

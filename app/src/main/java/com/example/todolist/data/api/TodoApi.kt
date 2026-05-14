@@ -129,6 +129,18 @@ class TodoApi(
     suspend fun getPosts(): List<Post> {
         return client.get("$baseUrl/posts").body()
     }
+
+    // ✅ Метод для лайка
+    suspend fun toggleLike(postId: String, userId: String) {
+        try {
+            client.post("$baseUrl/posts/$postId/like") {
+                contentType(ContentType.Application.Json)
+                setBody(mapOf("userId" to userId))
+            }
+        } catch (e: Exception) {
+            println("❌ Error toggling like: ${e.message}")
+        }
+    }
 }
 
 // === REQUEST/RESPONSE MODELS ===

@@ -5,6 +5,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -20,13 +21,14 @@ import java.time.format.DateTimeFormatter
 @Composable
 fun FeedScreen(
     api: TodoApi,
+    userId: String,  // ✅ Добавили параметр
     onBackClick: () -> Unit
 ) {
     val viewModel: FeedViewModel = viewModel(
         factory = object : androidx.lifecycle.ViewModelProvider.Factory {
             override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T {
                 @Suppress("UNCHECKED_CAST")
-                return FeedViewModel(api) as T
+                return FeedViewModel(api, userId) as T  // ✅ Передаем userId
             }
         }
     )
@@ -78,7 +80,10 @@ fun FeedScreen(
             } else {
                 LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     items(uiState.posts, key = { it.id }) { post ->
-                        PostCard(post)
+                        PostCard(
+                            post = post,
+                            onLikeClick = { viewModel.toggleLike(post.id) }  // ✅ Добавили!
+                        )
                     }
                 }
             }
@@ -87,7 +92,10 @@ fun FeedScreen(
 }
 
 @Composable
-fun PostCard(post: Post) {
+fun PostCard(
+    post: Post,
+    onLikeClick: () -> Unit  // ✅ Добавили параметр
+) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
@@ -105,12 +113,35 @@ fun PostCard(post: Post) {
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Дата
-            Text(
-                text = formatPostDate(post.createdAt),
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            // Дата и лайки
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = formatPostDate(post.createdAt),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                // ✅ Кнопка лайка
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    IconButton(onClick = onLikeClick) {
+                        Icon(
+                            imageVector = Icons.Default.Favorite,
+                            contentDescription = "Like",
+                            tint = Color.Red,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                    Text(
+                        text = "${post.likesCount}",
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.padding(end = 8.dp)
+                    )
+                }
+            }
         }
     }
 }
