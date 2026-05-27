@@ -25,7 +25,7 @@ object NotificationScheduler {
 
         // Парсим дату и ставим будильник за 1 час до дедлайна
         val dueDateTime = LocalDateTime.parse(dueDateStr)
-        val reminderTime = dueDateTime.minusHours(1).atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
+        val reminderTime = dueDateTime.minusDays(1).atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
 
         // Если время уже прошло — не ставим
         if (reminderTime > System.currentTimeMillis()) {

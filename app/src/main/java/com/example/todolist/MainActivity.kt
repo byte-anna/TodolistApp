@@ -1,14 +1,22 @@
 package com.example.todolist
 
+import android.Manifest
+import android.content.Intent
+import android.content.pm.PackageManager
+import android.net.Uri
+import android.os.Build
 import android.os.Bundle
+import android.provider.Settings
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -21,11 +29,23 @@ import com.example.todolist.presentation.components.tasks.TasksScreen
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
+
+    // ✅ Лаунчер для запроса разрешений (объявляем на уровне класса)
+    private val requestPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (!isGranted) {
+            // Можно показать Snackbar с объяснением, почему нужно разрешение
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        // ✅ Запрашиваем разрешения при старте приложения
+        requestNotificationPermissions()
+
         setContent {
-            // ✅ Используем стандартную тему Material3 (без кастомных цветов)
             MaterialTheme {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
@@ -33,6 +53,36 @@ class MainActivity : ComponentActivity() {
                 ) {
                     AppNavigation()
                 }
+            }
+        }
+    }
+
+    // ✅ Метод для запроса всех нужных разрешений
+    private fun requestNotificationPermissions() {
+        // Android 13+ (API 33+) — разрешение на уведомления
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            when {
+                ContextCompat.checkSelfPermission(
+                    this,
+                    Manifest.permission.POST_NOTIFICATIONS
+                ) == PackageManager.PERMISSION_GRANTED -> {
+                    // Уже есть
+                }
+                else -> {
+                    requestPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                }
+            }
+        }
+
+        // Android 12+ (API 32+) — разрешение на точные будильники
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            val alarmManager = getSystemService(ALARM_SERVICE) as android.app.AlarmManager
+            if (!alarmManager.canScheduleExactAlarms()) {
+                // Открываем настройки для запроса разрешения
+                val intent = Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM).apply {
+                    data = Uri.parse("package:$packageName")
+                }
+                startActivity(intent)
             }
         }
     }
@@ -47,27 +97,21 @@ fun AppNavigation() {
     val userPreferences = remember { UserPreferences(context.applicationContext) }
     val scope = rememberCoroutineScope()
 
-    // Слушаем, есть ли сохраненный пользователь
     val userId by userPreferences.userId.collectAsState(initial = null)
 
     NavHost(navController = navController, startDestination = "check_auth") {
 
-        // 1. Экран проверки (решаем, куда идти)
         composable("check_auth") {
             LaunchedEffect(userId) {
                 if (userId != null) {
-                    // Если есть ID -> на задачи
                     navController.navigate("tasks") { popUpTo("check_auth") { inclusive = true } }
                 } else {
-                    // Если нет -> на вход
                     navController.navigate("login") { popUpTo("check_auth") { inclusive = true } }
                 }
             }
-            // Пустой экран пока решаем
             Box(modifier = Modifier.fillMaxSize())
         }
 
-        // 2. Экран входа/регистрации
         composable("login") {
             val loginViewModel: LoginViewModel = viewModel()
             LoginScreen(
@@ -77,7 +121,6 @@ fun AppNavigation() {
             )
         }
 
-        // 3. Экран задач
         composable("tasks") {
             userId?.let { id ->
                 TasksScreen(
@@ -85,7 +128,7 @@ fun AppNavigation() {
                     api = api,
                     onLogout = {
                         scope.launch {
-                            userPreferences.clearUserId() // Очищаем память
+                            userPreferences.clearUserId()
                             navController.navigate("login") { popUpTo("tasks") { inclusive = true } }
                         }
                     }
