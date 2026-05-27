@@ -52,7 +52,7 @@ class FeedViewModel(
                 // Перезагружаем посты, чтобы обновить счетчик
                 loadPosts()
             } catch (e: Exception) {
-                println("❌ Error in toggleLike: ${e.message}")
+                println("Error in toggleLike: ${e.message}")
             }
         }
     }
