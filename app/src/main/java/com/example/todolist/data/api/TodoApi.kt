@@ -111,26 +111,21 @@ class TodoApi(
     }
     suspend fun createPost(userId: String, content: String, taskId: String? = null) {
         try {
-            println("📢 Создаю пост: userId=$userId, content=$content, taskId=$taskId")
 
             val response = client.post("$baseUrl/posts") {
                 contentType(ContentType.Application.Json)
                 setBody(CreatePostRequest(userId, content, taskId))
             }
 
-            println("✅ Пост создан! Status: ${response.status}")
         } catch (e: Exception) {
-            println("❌ Ошибка создания поста: ${e.message}")
             e.printStackTrace()
         }
     }
 
-    // ✅ Получение ленты постов
     suspend fun getPosts(): List<Post> {
         return client.get("$baseUrl/posts").body()
     }
 
-    // ✅ Метод для лайка
     suspend fun toggleLike(postId: String, userId: String) {
         try {
             client.post("$baseUrl/posts/$postId/like") {
@@ -138,7 +133,6 @@ class TodoApi(
                 setBody(mapOf("userId" to userId))
             }
         } catch (e: Exception) {
-            println("❌ Error toggling like: ${e.message}")
         }
     }
 }

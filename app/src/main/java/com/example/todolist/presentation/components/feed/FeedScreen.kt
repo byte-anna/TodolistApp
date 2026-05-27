@@ -6,16 +6,19 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.todolist.data.api.TodoApi
 import com.example.todolist.domain.model.Post
 import java.time.format.DateTimeFormatter
+import com.example.todolist.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -38,10 +41,23 @@ fun FeedScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("📢 Лента достижений") },
+                title = {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        // ✅ ВРЕМЕННО: встроенная иконка (должна работать без проблем)
+                        Icon(
+                            imageVector = Icons.Default.Star,
+                            contentDescription = "Лента достижений",
+                            tint = MaterialTheme.colorScheme.primary  // ← Или onSurface
+                        )
+                        Text("Лента достижений")
+                    }
+                },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
-                        Icon(Icons.Default.ArrowBack, "Назад")
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Назад")
                     }
                 }
             )
@@ -72,7 +88,7 @@ fun FeedScreen(
             } else if (uiState.posts.isEmpty()) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Text(
-                        text = "Пока нет достижений. Будь первым! 🚀",
+                        text = "Пока нет достижений. Будь первым!",
                         style = MaterialTheme.typography.bodyLarge,
                         color = Color.Gray
                     )

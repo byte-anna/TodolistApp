@@ -8,11 +8,13 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.todolist.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -42,8 +44,20 @@ fun LoginScreen(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
+        Icon(
+            painter = painterResource(
+                id = if (isLogin) R.drawable.login else R.drawable.register
+            ),
+            contentDescription = if (isLogin) "Вход" else "Регистрация",
+            modifier = Modifier.size(72.dp),
+            tint = MaterialTheme.colorScheme.primary
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Текст без эмодзи
         Text(
-            text = if (isLogin) "Вход 👋" else "Регистрация ✨",
+            text = if (isLogin) "Вход" else "Регистрация",
             style = MaterialTheme.typography.headlineLarge
         )
 
@@ -53,7 +67,7 @@ fun LoginScreen(
         OutlinedTextField(
             value = email,
             onValueChange = { email = it },
-            label = { Text("Email") },
+            label = { Text("Логин") },
             modifier = Modifier.fillMaxWidth(),
             keyboardOptions = KeyboardOptions(
                 keyboardType = KeyboardType.Email,

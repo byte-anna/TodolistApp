@@ -7,10 +7,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import java.time.Instant
 import java.time.LocalDateTime
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import com.example.todolist.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -71,7 +73,20 @@ fun AddTaskDialog(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Column(horizontalAlignment = Alignment.Start) {
-                        Text("📅 Дедлайн:")
+                        // ✅ Иконка + текст вместо эмодзи
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Icon(
+                                painter = painterResource(id = R.drawable.calendar),
+                                contentDescription = "Дедлайн",
+                                modifier = Modifier.size(18.dp),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Text("Дедлайн:")
+                        }
+
                         Text(
                             text = dueDate?.let {
                                 try {
@@ -107,7 +122,7 @@ fun AddTaskDialog(
                         onCheckedChange = { shareToFeed = it }
                     )
                     Text(
-                        text = "📢 Опубликовать как достижение",
+                        text = "Опубликовать как достижение",
                         style = MaterialTheme.typography.bodyMedium
                     )
                 }

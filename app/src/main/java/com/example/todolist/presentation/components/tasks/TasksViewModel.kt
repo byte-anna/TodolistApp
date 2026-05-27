@@ -1,8 +1,7 @@
 package com.example.todolist.presentation.components.tasks
 
 import android.app.Application
-import androidx.compose.runtime.mutableStateOf
-import androidx.lifecycle.AndroidViewModel  // ✅ Важно: AndroidViewModel!
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.todolist.data.api.TodoApi
 import com.example.todolist.domain.model.Folder
@@ -11,6 +10,9 @@ import com.example.todolist.utils.NotificationScheduler
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.launch
 
 data class TasksUiState(
@@ -23,8 +25,8 @@ data class TasksUiState(
 class TasksViewModel(
     private val api: TodoApi,
     private val userId: String,
-    application: Application  // ✅ Добавили Application
-) : AndroidViewModel(application) {  // ✅ Наследуемся от AndroidViewModel
+    application: Application
+) : AndroidViewModel(application) {
 
     private val _uiState = MutableStateFlow(TasksUiState())
     val uiState: StateFlow<TasksUiState> = _uiState.asStateFlow()
@@ -36,15 +38,11 @@ class TasksViewModel(
         viewModelScope.launch {
             try {
                 val tasks = api.getTasks(userId)
-
-                // ✅ Если currentFolderId == null, показываем ВСЕ задачи
-                // ✅ Если выбрана папка, показываем только задачи из неё
                 val filteredTasks = if (currentFolderId == null) {
-                    tasks  // Показываем все задачи
+                    tasks
                 } else {
                     tasks.filter { it.folderId == currentFolderId }
                 }
-
                 _uiState.value = _uiState.value.copy(
                     tasks = filteredTasks.sortedWith(
                         compareBy<Task> { it.isDone }.thenByDescending { it.priority }
@@ -63,12 +61,9 @@ class TasksViewModel(
                 val createdTask = api.createTask(userId, title, priority, dueDate, folderId)
                 loadTasks()
                 closeDialog()
-
-                // ✅ Если чекбокс был включён → создаём пост
                 if (shareToFeed) {
                     api.createPost(userId, createdTask.title, createdTask.id)
                 }
-
                 if (dueDate != null) {
                     NotificationScheduler.scheduleReminder(
                         getApplication<Application>(),
@@ -93,11 +88,10 @@ class TasksViewModel(
                     title = title,
                     priority = priority,
                     dueDate = dueDate,
-                    folderId = folderId  // ✅ Передаём folderId
+                    folderId = folderId
                 )
                 loadTasks()
                 closeDialog()
-
                 NotificationScheduler.cancelReminder(getApplication<Application>(), task.id)
                 if (dueDate != null) {
                     NotificationScheduler.scheduleReminder(
@@ -116,12 +110,13 @@ class TasksViewModel(
     fun toggleTask(taskId: String, isDone: Boolean) {
         viewModelScope.launch {
             try {
-                // ✅ Используем именованные параметры + добавляем folderId = null
+                // ✅ Просто обновляем статус задачи на сервере
                 api.updateTask(
                     taskId = taskId,
                     userId = userId,
                     isDone = isDone,
-                    folderId = null  // ✅ Не меняем папку при переключении галочки
+                    folderId = null
+                    // ✅ completedAt больше не передаём — он не нужен
                 )
                 loadTasks()
             } catch (e: Exception) {
@@ -134,7 +129,6 @@ class TasksViewModel(
         viewModelScope.launch {
             try {
                 api.deleteTask(taskId, userId)
-                // ✅ Отменяем напоминание при удалении
                 NotificationScheduler.cancelReminder(getApplication<Application>(), taskId)
                 loadTasks()
             } catch (e: Exception) {
@@ -148,21 +142,23 @@ class TasksViewModel(
 
     var currentFolderId: String? = null
         private set
+
     fun loadFolders() {
         viewModelScope.launch {
             try {
                 val foldersList = api.getFolders(userId)
                 _folders.value = foldersList
             } catch (e: Exception) {
-                // Игнорируем ошибку, если папок нет
+                // Игнорируем ошибку
             }
         }
     }
 
     fun setCurrentFolder(folderId: String?) {
         currentFolderId = folderId
-        loadTasks()  // Перезагружаем задачи с фильтром
+        loadTasks()
     }
+
     private val _searchQuery = MutableStateFlow("")
     val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
 
@@ -174,7 +170,6 @@ class TasksViewModel(
         _searchQuery.value = ""
     }
 
-
     fun showAddDialog() {
         val dummyTask = Task(
             id = "",
@@ -183,7 +178,7 @@ class TasksViewModel(
             isDone = false,
             priority = 2,
             dueDate = null,
-            folderId = null,  // ✅ Добавили!
+            folderId = null,
             createdAt = ""
         )
         _uiState.value = _uiState.value.copy(dialogTask = dummyTask)
@@ -200,4 +195,33 @@ class TasksViewModel(
     fun clearError() {
         _uiState.value = _uiState.value.copy(error = null)
     }
+
+    // ✅✅✅ СТАТИСТИКА — ВСТАВЛЕНО В КОНЕЦ КЛАССА ✅✅✅
+
+    val completedTasksCount: StateFlow<Int> = uiState.map { state ->
+        state.tasks.count { it.isDone }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
+
+    // ✅ НОВОЕ: Очистить все задачи
+    fun clearAllTasks() {
+        viewModelScope.launch {
+            try {
+                // Получаем список всех текущих задач
+                val tasks = _uiState.value.tasks
+
+                // Удаляем каждую задачу на сервере и отменяем уведомления
+                for (task in tasks) {
+                    api.deleteTask(task.id, userId)
+                    NotificationScheduler.cancelReminder(getApplication<Application>(), task.id)
+                }
+
+                // Перезагружаем список
+                loadTasks()
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(error = e.message)
+            }
+        }
+    }
+
+
 }

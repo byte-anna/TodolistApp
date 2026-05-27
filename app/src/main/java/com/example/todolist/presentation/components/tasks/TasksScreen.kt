@@ -24,8 +24,15 @@ import com.example.todolist.domain.model.Task
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.platform.LocalContext
 import android.app.Application
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.painterResource
 import com.example.todolist.presentation.components.feed.FeedScreen
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import com.example.todolist.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -34,6 +41,8 @@ fun TasksScreen(
     api: TodoApi,
     onLogout: () -> Unit
 ) {
+
+
     val appContext = LocalContext.current.applicationContext as Application
     var showFeed by remember { mutableStateOf(false) }
 
@@ -51,16 +60,33 @@ fun TasksScreen(
     // ✅ Получаем searchQuery из ViewModel как StateFlow
     val searchQuery by viewModel.searchQuery.collectAsState()
 
+    val totalCount by viewModel.completedTasksCount.collectAsState()
+    var showClearDialog by remember { mutableStateOf(false) }
+
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Мои задачи") },
+                title = {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Star,  // ⭐ Звёздочка!
+                            contentDescription = "Прогресс",
+                            tint = MaterialTheme.colorScheme.primary,  // ✅ Цвет темы (фиолетовый/синий)
+                            modifier = Modifier.size(24.dp)
+                        )
+                        Text("Мои задачи")
+                    }
+                },
                 actions = {
-                    // ✅ Кнопка ленты
+                    // ✅ Кнопка ленты с иконкой progress
                     IconButton(onClick = { showFeed = true }) {
                         Icon(
-                            Icons.Default.Notifications,
-                            contentDescription = "Лента достижений"
+                            imageVector = Icons.Default.Notifications,  // 🔔 Встроенный колокольчик
+                            contentDescription = "Лента достижений",
+                            tint = MaterialTheme.colorScheme.primary
                         )
                     }
 
@@ -75,6 +101,8 @@ fun TasksScreen(
                 Icon(Icons.Default.Add, "Добавить задачу")
             }
         }
+
+
     ) { paddingValues ->
         Column(modifier = Modifier.padding(paddingValues).padding(16.dp).fillMaxSize()) {
 
@@ -102,6 +130,7 @@ fun TasksScreen(
                     unfocusedBorderColor = Color.Gray
                 )
             )
+
 
             Spacer(modifier = Modifier.height(16.dp))
 
@@ -148,7 +177,62 @@ fun TasksScreen(
                         }
                     }
                 } else {
-                    LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    LazyColumn(
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)) {
+
+                        // ✅ 1. ВСТАВЛЯЕМ СТАТИСТИКУ ПЕРВЫМ ЭЛЕМЕНТОМ СПИСКА
+                        item {
+                            Card(
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = CardDefaults.cardColors(
+                                    containerColor = MaterialTheme.colorScheme.primaryContainer
+                                ),
+                                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(16.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Column {
+                                        Icon(
+                                            painter = painterResource(id = R.drawable.check),
+                                            contentDescription = "Прогресс",
+                                            modifier = Modifier.size(24.dp),
+                                            tint = MaterialTheme.colorScheme.onPrimaryContainer
+                                        )
+                                        Text(
+                                            text = "Прогресс",
+                                            style = MaterialTheme.typography.titleLarge,
+                                            color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                            fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
+                                        )
+                                        Text(
+                                            text = "Выполнено задач: ${totalCount}",
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f),
+                                            fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
+                                        )
+                                    }
+
+                                    // Кнопка очистки (маленькая)
+                                    TextButton(
+                                        onClick = {
+                                            // Показать диалог подтверждения (см. шаг В)
+                                            showClearDialog = true
+                                        },
+                                        colors = ButtonDefaults.textButtonColors(
+                                            contentColor = MaterialTheme.colorScheme.error
+                                        )
+                                    ) {
+                                        Text("Очистить всё", fontWeight = androidx.compose.ui.text.font.FontWeight.Medium)
+                                    }
+                                }
+                            }
+                        }
+
+                        // ✅ 2. ТВОЙ СТАРЫЙ КОД (ОСТАВЛЯЕМ КАК БЫЛО)
                         items(filteredTasks, key = { it.id }) { task ->
                             val dismissState = rememberDismissState(
                                 confirmValueChange = { dismissValue ->
@@ -219,6 +303,30 @@ fun TasksScreen(
                     }
                 },
                 onDismiss = { viewModel.closeDialog() }
+            )
+        }
+        // ✅ Диалог подтверждения очистки
+        if (showClearDialog) {
+            AlertDialog(
+                onDismissRequest = { showClearDialog = false },
+                title = { Text("Удалить все задачи?") },
+                text = { Text("Это действие нельзя отменить. Все задачи будут удалены безвозвратно.") },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            viewModel.clearAllTasks()
+                            showClearDialog = false
+                        },
+                        colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
+                    ) {
+                        Text("Удалить", fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showClearDialog = false }) {
+                        Text("Отмена")
+                    }
+                }
             )
         }
     }
@@ -305,4 +413,6 @@ fun TaskItem(
             }
         }
     }
+
+
 }
