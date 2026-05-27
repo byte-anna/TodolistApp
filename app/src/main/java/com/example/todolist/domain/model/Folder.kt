@@ -1,9 +1,9 @@
 package com.example.todolist.domain.model
 
-// import kotlinx.serialization.Serializable  // ✅ Закомментируй временно
-// @Serializable  // ✅ Закомментируй временно
+import kotlinx.serialization.Serializable
 
-data class Folder(  // ✅ Просто data-класс без аннотации
+@Serializable
+data class Folder(
     val id: String,
     val userId: String,
     val name: String,

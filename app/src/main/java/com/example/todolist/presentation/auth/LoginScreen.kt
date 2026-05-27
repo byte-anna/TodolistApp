@@ -26,7 +26,7 @@ fun LoginScreen(
 
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
-    var displayName by remember { mutableStateOf("") }  // ✅ Добавили
+    var displayName by remember { mutableStateOf("") }
     var isLogin by remember { mutableStateOf(true) }
 
     val uiState by viewModel.uiState.collectAsState()
@@ -77,7 +77,6 @@ fun LoginScreen(
             enabled = !uiState.isLoading
         )
 
-        // ✅ Поле имени (только при регистрации)
         if (!isLogin) {
             Spacer(modifier = Modifier.height(16.dp))
             OutlinedTextField(

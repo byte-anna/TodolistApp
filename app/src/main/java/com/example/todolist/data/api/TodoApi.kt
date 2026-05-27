@@ -148,23 +148,22 @@ data class LoginRequest(val email: String, val password: String)
 @Serializable
 data class AuthResponse(val userId: String, val email: String, val displayName: String? = null)
 
-// ✅ CreateTaskRequest — folderId на 4-м месте!
+
 @Serializable
 data class CreateTaskRequest(
     val title: String,
     val priority: Int = 1,
     val dueDate: String? = null,
-    val folderId: String? = null  // ✅ 4-й параметр
+    val folderId: String? = null
 )
 
-// ✅ UpdateTaskRequest — folderId на 5-м месте!
 @Serializable
 data class UpdateTaskRequest(
     val title: String? = null,
     val isDone: Boolean? = null,
     val priority: Int? = null,
     val dueDate: String? = null,
-    val folderId: String? = null  // ✅ 5-й параметр
+    val folderId: String? = null
 )
 
 @Serializable
@@ -176,7 +175,6 @@ data class CreatePostRequest(
     val taskId: String? = null
 )
 
-// ✅ Новый метод для создания поста
 
 @Serializable
 data class ErrorResponse(val error: String)

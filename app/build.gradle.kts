@@ -35,15 +35,13 @@ android {
 
     kotlinOptions {
         jvmTarget = "17"
-        // ✅ Включаем свободные параметры для Compose
         freeCompilerArgs += "-opt-in=androidx.compose.material3.ExperimentalMaterial3Api"
     }
 
     buildFeatures {
-        compose = true  // ✅ Включаем Compose здесь!
+        compose = true
     }
 
-    // ✅ Версия Compose Compiler для Kotlin 1.9.24:
     composeOptions {
         kotlinCompilerExtensionVersion = "1.5.14"
     }

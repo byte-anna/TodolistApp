@@ -14,7 +14,7 @@ data class LoginUiState(
     val isLoading: Boolean = false,
     val isLoggedIn: Boolean = false,
     val userId: String? = null,
-    val userName: String? = null,  // ✅ Добавили
+    val userName: String? = null,
     val error: String? = null
 )
 
@@ -87,7 +87,7 @@ class LoginViewModel(application: Application) : AndroidViewModel(application) {
                 _uiState.value = LoginUiState(
                     isLoggedIn = true,
                     userId = response.userId,
-                    userName = response.displayName ?: response.email  // Если имени нет, показываем email
+                    userName = response.displayName ?: response.email
                 )
             } catch (e: Exception) {
                 val message = e.message ?: "Ошибка входа"

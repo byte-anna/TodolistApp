@@ -18,11 +18,10 @@ class TaskRepositoryImpl(
 
     override suspend fun updateTask(taskId: String, userId: String, isDone: Boolean): Result<Boolean> {
         return runCatching {
-            // ✅ Явно указываем, что это параметр isDone
             api.updateTask(
                 taskId = taskId,
                 userId = userId,
-                isDone = isDone  // ← Именованный параметр!
+                isDone = isDone
             )
         }
     }

@@ -1,8 +1,8 @@
 package com.example.todolist.domain.model
 
-import kotlinx.serialization.Serializable  // ✅ Импорт!
+import kotlinx.serialization.Serializable
 
-@Serializable  // ✅ Аннотация!
+@Serializable
 data class TaskListResponse(
     val tasks: List<Task>
 )

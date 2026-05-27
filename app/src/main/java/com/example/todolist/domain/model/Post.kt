@@ -1,4 +1,4 @@
-package com.example.todolist.domain.model  // ✅ Должно быть так!
+package com.example.todolist.domain.model
 
 import kotlinx.serialization.Serializable
 

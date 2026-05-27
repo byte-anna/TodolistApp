@@ -24,14 +24,11 @@ import com.example.todolist.domain.model.Task
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.platform.LocalContext
 import android.app.Application
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.painterResource
 import com.example.todolist.presentation.components.feed.FeedScreen
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.StateFlow
 import com.example.todolist.R
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -57,7 +54,6 @@ fun TasksScreen(
 
     val uiState by viewModel.uiState.collectAsState()
 
-    // ✅ Получаем searchQuery из ViewModel как StateFlow
     val searchQuery by viewModel.searchQuery.collectAsState()
 
     val totalCount by viewModel.completedTasksCount.collectAsState()
@@ -72,19 +68,18 @@ fun TasksScreen(
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         Icon(
-                            imageVector = Icons.Default.Star,  // ⭐ Звёздочка!
+                            imageVector = Icons.Default.Star,
                             contentDescription = "Прогресс",
-                            tint = MaterialTheme.colorScheme.primary,  // ✅ Цвет темы (фиолетовый/синий)
+                            tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(24.dp)
                         )
                         Text("Мои задачи")
                     }
                 },
                 actions = {
-                    // ✅ Кнопка ленты с иконкой progress
                     IconButton(onClick = { showFeed = true }) {
                         Icon(
-                            imageVector = Icons.Default.Notifications,  // 🔔 Встроенный колокольчик
+                            imageVector = Icons.Default.Notifications,
                             contentDescription = "Лента достижений",
                             tint = MaterialTheme.colorScheme.primary
                         )
@@ -106,11 +101,10 @@ fun TasksScreen(
     ) { paddingValues ->
         Column(modifier = Modifier.padding(paddingValues).padding(16.dp).fillMaxSize()) {
 
-            // ✅ 1. ПОИСКОВАЯ СТРОКА
             OutlinedTextField(
                 value = searchQuery,
                 onValueChange = { newValue ->
-                    viewModel.updateSearchQuery(newValue)  // ✅ Вызываем метод ViewModel
+                    viewModel.updateSearchQuery(newValue)
                 },
                 modifier = Modifier.fillMaxWidth(),
                 label = { Text("Поиск задачи...") },
@@ -119,7 +113,7 @@ fun TasksScreen(
                 },
                 trailingIcon = {
                     if (searchQuery.isNotEmpty()) {
-                        IconButton(onClick = { viewModel.clearSearch() }) {  // ✅ Вызываем метод
+                        IconButton(onClick = { viewModel.clearSearch() }) {
                             Icon(Icons.Default.Clear, contentDescription = "Очистить")
                         }
                     }
@@ -134,7 +128,6 @@ fun TasksScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // ✅ 2. ОБРАБОТКА ОШИБОК
             uiState.error?.let { error ->
                 Card(
                     modifier = Modifier.fillMaxWidth(),
@@ -154,13 +147,11 @@ fun TasksScreen(
                 Spacer(modifier = Modifier.height(8.dp))
             }
 
-            // ✅ 3. ЛОГИКА СПИСКА + ФИЛЬТРАЦИЯ
             if (uiState.isLoading) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     CircularProgressIndicator()
                 }
             } else {
-                // ✅ Фильтруем задачи (ОБЪЯВЛЯЕМ ТОЛЬКО ОДИН РАЗ!)
                 val filteredTasks = uiState.tasks.filter { task ->
                     task.title.contains(searchQuery, ignoreCase = true)
                 }
@@ -181,7 +172,6 @@ fun TasksScreen(
                         modifier = Modifier.weight(1f),
                         verticalArrangement = Arrangement.spacedBy(8.dp)) {
 
-                        // ✅ 1. ВСТАВЛЯЕМ СТАТИСТИКУ ПЕРВЫМ ЭЛЕМЕНТОМ СПИСКА
                         item {
                             Card(
                                 modifier = Modifier.fillMaxWidth(),
@@ -232,7 +222,6 @@ fun TasksScreen(
                             }
                         }
 
-                        // ✅ 2. ТВОЙ СТАРЫЙ КОД (ОСТАВЛЯЕМ КАК БЫЛО)
                         items(filteredTasks, key = { it.id }) { task ->
                             val dismissState = rememberDismissState(
                                 confirmValueChange = { dismissValue ->
@@ -283,7 +272,6 @@ fun TasksScreen(
             }
         }
 
-        // ✅ ДИАЛОГ
         if (uiState.dialogTask != null) {
             val task = uiState.dialogTask!!
             val isEdit = task.id.isNotEmpty()
@@ -293,19 +281,16 @@ fun TasksScreen(
                 initialPriority = task.priority,
                 initialDueDate = task.dueDate,
                 isEdit = isEdit,
-                // ✅ Добавили shareToFeed (4-й параметр)
                 onConfirm = { title, priority, dueDate, shareToFeed ->
                     if (isEdit) {
                         viewModel.updateTask(title, priority, dueDate, task.folderId)
                     } else {
-                        // ✅ Передаём shareToFeed в ViewModel
                         viewModel.addTask(title, priority, dueDate, null, shareToFeed)
                     }
                 },
                 onDismiss = { viewModel.closeDialog() }
             )
         }
-        // ✅ Диалог подтверждения очистки
         if (showClearDialog) {
             AlertDialog(
                 onDismissRequest = { showClearDialog = false },
@@ -334,7 +319,7 @@ fun TasksScreen(
     if (showFeed) {
         FeedScreen(
             api = api,
-            userId = userId,  // ✅ Добавь эту строку!
+            userId = userId,
             onBackClick = { showFeed = false }
         )
     }

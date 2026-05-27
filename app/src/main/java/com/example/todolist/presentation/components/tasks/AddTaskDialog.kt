@@ -21,7 +21,7 @@ fun AddTaskDialog(
     initialPriority: Int,
     initialDueDate: String? = null,
     isEdit: Boolean,
-    onConfirm: (String, Int, String?, Boolean) -> Unit,  // ✅ 3 параметра
+    onConfirm: (String, Int, String?, Boolean) -> Unit,
     onDismiss: () -> Unit
 ) {
     var title by remember { mutableStateOf(initialTitle) }
@@ -73,7 +73,6 @@ fun AddTaskDialog(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Column(horizontalAlignment = Alignment.Start) {
-                        // ✅ Иконка + текст вместо эмодзи
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(4.dp)
@@ -115,7 +114,6 @@ fun AddTaskDialog(
                 Divider()
                 Spacer(Modifier.height(8.dp))
 
-// ✅ Чекбокс "Поделиться"
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Checkbox(
                         checked = shareToFeed,
@@ -132,7 +130,6 @@ fun AddTaskDialog(
             Button(
                 onClick = {
                     if (title.isNotBlank()) {
-                        // ✅ Передаём shareToFeed последним параметром
                         onConfirm(title.trim(), priority, dueDate, shareToFeed)
                     }
                 },
@@ -184,7 +181,6 @@ fun AddTaskDialog(
     }
 }
 
-// ✅ Вспомогательная кнопка приоритета (только одна!)
 @Composable
 fun PriorityButton(
     label: String,

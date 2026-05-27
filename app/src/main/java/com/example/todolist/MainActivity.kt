@@ -30,19 +30,17 @@ import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
 
-    // ✅ Лаунчер для запроса разрешений (объявляем на уровне класса)
+
     private val requestPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { isGranted ->
         if (!isGranted) {
-            // Можно показать Snackbar с объяснением, почему нужно разрешение
         }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // ✅ Запрашиваем разрешения при старте приложения
         requestNotificationPermissions()
 
         setContent {
@@ -57,7 +55,6 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    // ✅ Метод для запроса всех нужных разрешений
     private fun requestNotificationPermissions() {
         // Android 13+ (API 33+) — разрешение на уведомления
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {

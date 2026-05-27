@@ -16,7 +16,7 @@ class UserPreferences(private val context: Context) {
 
     private object PreferencesKeys {
         val USER_ID = stringPreferencesKey("user_id")
-        val USER_NAME = stringPreferencesKey("user_name")  // ✅ Добавили
+        val USER_NAME = stringPreferencesKey("user_name")
     }
 
     val userId: Flow<String?> = context.dataStore.data
@@ -24,7 +24,6 @@ class UserPreferences(private val context: Context) {
             preferences[PreferencesKeys.USER_ID]
         }
 
-    // ✅ Добавили поток для имени
     val userName: Flow<String?> = context.dataStore.data
         .map { preferences ->
             preferences[PreferencesKeys.USER_NAME]
@@ -36,7 +35,6 @@ class UserPreferences(private val context: Context) {
         }
     }
 
-    // ✅ Добавили метод сохранения имени
     suspend fun saveUserName(name: String) {
         context.dataStore.edit { preferences ->
             preferences[PreferencesKeys.USER_NAME] = name
@@ -46,7 +44,7 @@ class UserPreferences(private val context: Context) {
     suspend fun clearUserId() {
         context.dataStore.edit { preferences ->
             preferences.remove(PreferencesKeys.USER_ID)
-            preferences.remove(PreferencesKeys.USER_NAME)  // ✅ Очищаем и имя
+            preferences.remove(PreferencesKeys.USER_NAME)
         }
     }
 }

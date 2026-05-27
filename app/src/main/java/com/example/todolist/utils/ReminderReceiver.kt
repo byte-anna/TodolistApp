@@ -31,7 +31,7 @@ class ReminderReceiver : BroadcastReceiver() {
 
         // Уведомление
         val notification = NotificationCompat.Builder(context, channelId)
-            .setSmallIcon(R.drawable.ic_notification)  // ✅ Заменили // Замени на свою иконку
+            .setSmallIcon(R.drawable.ic_notification)
             .setContentTitle(" Напоминание")
             .setContentText("Дедлайн для задачи: \"$title\"")
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)

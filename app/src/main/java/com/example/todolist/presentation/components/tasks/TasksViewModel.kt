@@ -110,13 +110,11 @@ class TasksViewModel(
     fun toggleTask(taskId: String, isDone: Boolean) {
         viewModelScope.launch {
             try {
-                // ✅ Просто обновляем статус задачи на сервере
                 api.updateTask(
                     taskId = taskId,
                     userId = userId,
                     isDone = isDone,
                     folderId = null
-                    // ✅ completedAt больше не передаём — он не нужен
                 )
                 loadTasks()
             } catch (e: Exception) {
@@ -196,13 +194,11 @@ class TasksViewModel(
         _uiState.value = _uiState.value.copy(error = null)
     }
 
-    // ✅✅✅ СТАТИСТИКА — ВСТАВЛЕНО В КОНЕЦ КЛАССА ✅✅✅
 
     val completedTasksCount: StateFlow<Int> = uiState.map { state ->
         state.tasks.count { it.isDone }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
 
-    // ✅ НОВОЕ: Очистить все задачи
     fun clearAllTasks() {
         viewModelScope.launch {
             try {

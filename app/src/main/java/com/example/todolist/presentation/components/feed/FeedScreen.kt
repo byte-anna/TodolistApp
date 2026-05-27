@@ -24,14 +24,14 @@ import com.example.todolist.R
 @Composable
 fun FeedScreen(
     api: TodoApi,
-    userId: String,  // ✅ Добавили параметр
+    userId: String,
     onBackClick: () -> Unit
 ) {
     val viewModel: FeedViewModel = viewModel(
         factory = object : androidx.lifecycle.ViewModelProvider.Factory {
             override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T {
                 @Suppress("UNCHECKED_CAST")
-                return FeedViewModel(api, userId) as T  // ✅ Передаем userId
+                return FeedViewModel(api, userId) as T
             }
         }
     )
@@ -46,7 +46,6 @@ fun FeedScreen(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        // ✅ ВРЕМЕННО: встроенная иконка (должна работать без проблем)
                         Icon(
                             imageVector = Icons.Default.Star,
                             contentDescription = "Лента достижений",
@@ -98,7 +97,7 @@ fun FeedScreen(
                     items(uiState.posts, key = { it.id }) { post ->
                         PostCard(
                             post = post,
-                            onLikeClick = { viewModel.toggleLike(post.id) }  // ✅ Добавили!
+                            onLikeClick = { viewModel.toggleLike(post.id) }
                         )
                     }
                 }
@@ -110,7 +109,7 @@ fun FeedScreen(
 @Composable
 fun PostCard(
     post: Post,
-    onLikeClick: () -> Unit  // ✅ Добавили параметр
+    onLikeClick: () -> Unit
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -141,7 +140,6 @@ fun PostCard(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
 
-                // ✅ Кнопка лайка
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     IconButton(onClick = onLikeClick) {
                         Icon(
