@@ -53,6 +53,31 @@ class TaskRepositoryImpl(
         }
     }
 
+    override suspend fun updateTaskDetails(
+        taskId: String,
+        userId: String,
+        title: String,
+        priority: Int,
+        dueDate: String?,
+        folderId: String?
+    ): Result<Boolean> {
+        return runCatching {
+            val success = api.updateTask(
+                taskId = taskId,
+                userId = userId,
+                title = title,
+                priority = priority,
+                dueDate = dueDate,
+                folderId = folderId
+            )
+            if (success) {
+                // Обновляем задачу в кэше
+                taskDao.updateTaskDetails(taskId, title, priority, dueDate, folderId)
+            }
+            success
+        }
+    }
+
     override suspend fun deleteTask(taskId: String, userId: String): Result<Boolean> {
         return runCatching {
             val success = api.deleteTask(taskId, userId)

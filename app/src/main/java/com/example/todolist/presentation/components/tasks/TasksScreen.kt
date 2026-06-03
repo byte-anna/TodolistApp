@@ -20,6 +20,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.todolist.data.api.TodoApi
+import com.example.todolist.data.local.AppDatabase
+import com.example.todolist.data.repository.TaskRepositoryImpl
 import com.example.todolist.domain.model.Task
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.platform.LocalContext
@@ -38,24 +40,25 @@ fun TasksScreen(
     api: TodoApi,
     onLogout: () -> Unit
 ) {
-
-
     val appContext = LocalContext.current.applicationContext as Application
     var showFeed by remember { mutableStateOf(false) }
+
+    // Создаём репозиторий с Room базой данных
+    val database = remember { AppDatabase.getDatabase(appContext) }
+    val taskDao = remember { database.taskDao() }
+    val repository = remember { TaskRepositoryImpl(api, taskDao) }
 
     val viewModel: TasksViewModel = viewModel(
         factory = object : androidx.lifecycle.ViewModelProvider.Factory {
             override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T {
                 @Suppress("UNCHECKED_CAST")
-                return TasksViewModel(api, userId, appContext) as T
+                return TasksViewModel(repository, userId, appContext) as T
             }
         }
     )
 
     val uiState by viewModel.uiState.collectAsState()
-
     val searchQuery by viewModel.searchQuery.collectAsState()
-
     val totalCount by viewModel.completedTasksCount.collectAsState()
     var showClearDialog by remember { mutableStateOf(false) }
 
@@ -96,11 +99,8 @@ fun TasksScreen(
                 Icon(Icons.Default.Add, "Добавить задачу")
             }
         }
-
-
     ) { paddingValues ->
         Column(modifier = Modifier.padding(paddingValues).padding(16.dp).fillMaxSize()) {
-
             OutlinedTextField(
                 value = searchQuery,
                 onValueChange = { newValue ->
@@ -124,7 +124,6 @@ fun TasksScreen(
                     unfocusedBorderColor = Color.Gray
                 )
             )
-
 
             Spacer(modifier = Modifier.height(16.dp))
 
@@ -170,8 +169,8 @@ fun TasksScreen(
                 } else {
                     LazyColumn(
                         modifier = Modifier.weight(1f),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)) {
-
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
                         item {
                             Card(
                                 modifier = Modifier.fillMaxWidth(),
@@ -206,10 +205,8 @@ fun TasksScreen(
                                         )
                                     }
 
-                                    // Кнопка очистки (маленькая)
                                     TextButton(
                                         onClick = {
-                                            // Показать диалог подтверждения (см. шаг В)
                                             showClearDialog = true
                                         },
                                         colors = ButtonDefaults.textButtonColors(
@@ -291,6 +288,7 @@ fun TasksScreen(
                 onDismiss = { viewModel.closeDialog() }
             )
         }
+
         if (showClearDialog) {
             AlertDialog(
                 onDismissRequest = { showClearDialog = false },
@@ -323,9 +321,8 @@ fun TasksScreen(
             onBackClick = { showFeed = false }
         )
     }
-
-
 }
+
 
 @Composable
 fun TaskItem(
