@@ -3,7 +3,6 @@ package com.example.todolist.presentation.components.tasks
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.todolist.domain.model.Folder
 import com.example.todolist.domain.model.Task
 import com.example.todolist.domain.repository.TaskRepository
 import com.example.todolist.utils.NotificationScheduler
@@ -33,7 +32,7 @@ class TasksViewModel(
 
     init { loadTasks() }
 
-    fun updateTask(title: String, priority: Int, dueDate: String? = null, folderId: String? = null) {
+    fun updateTask(title: String, priority: Int, dueDate: String? = null) {
         val task = _uiState.value.dialogTask ?: return
         viewModelScope.launch {
             val result = repository.updateTaskDetails(
@@ -42,7 +41,7 @@ class TasksViewModel(
                 title = title,
                 priority = priority,
                 dueDate = dueDate,
-                folderId = folderId
+                folderId = null
             )
             result.onSuccess {
                 loadTasks()
@@ -67,13 +66,8 @@ class TasksViewModel(
         viewModelScope.launch {
             val result = repository.getTasks(userId)
             result.onSuccess { tasks ->
-                val filteredTasks = if (currentFolderId == null) {
-                    tasks
-                } else {
-                    tasks.filter { it.folderId == currentFolderId }
-                }
                 _uiState.value = _uiState.value.copy(
-                    tasks = filteredTasks.sortedWith(
+                    tasks = tasks.sortedWith(
                         compareBy<Task> { it.isDone }.thenByDescending { it.priority }
                     ),
                     isLoading = false
@@ -84,7 +78,7 @@ class TasksViewModel(
         }
     }
 
-    fun addTask(title: String, priority: Int, dueDate: String? = null, folderId: String? = null, shareToFeed: Boolean = false) {
+    fun addTask(title: String, priority: Int, dueDate: String? = null, shareToFeed: Boolean = false) {
         viewModelScope.launch {
             val result = repository.createTask(userId, title, priority)
             result.onSuccess { createdTask ->
@@ -125,14 +119,6 @@ class TasksViewModel(
                 _uiState.value = _uiState.value.copy(error = error.message)
             }
         }
-    }
-
-    var currentFolderId: String? = null
-        private set
-
-    fun setCurrentFolder(folderId: String?) {
-        currentFolderId = folderId
-        loadTasks()
     }
 
     private val _searchQuery = MutableStateFlow("")

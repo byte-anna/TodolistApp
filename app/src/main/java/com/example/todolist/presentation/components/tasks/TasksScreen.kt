@@ -280,9 +280,9 @@ fun TasksScreen(
                 isEdit = isEdit,
                 onConfirm = { title, priority, dueDate, shareToFeed ->
                     if (isEdit) {
-                        viewModel.updateTask(title, priority, dueDate, task.folderId)
+                        viewModel.updateTask(title, priority, dueDate)  // ← БЕЗ folderId
                     } else {
-                        viewModel.addTask(title, priority, dueDate, null, shareToFeed)
+                        viewModel.addTask(title, priority, dueDate, shareToFeed)  // ← БЕЗ null
                     }
                 },
                 onDismiss = { viewModel.closeDialog() }
