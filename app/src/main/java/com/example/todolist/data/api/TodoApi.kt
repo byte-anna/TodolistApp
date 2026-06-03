@@ -40,11 +40,24 @@ class TodoApi(
     }
 
     suspend fun createTask(userId: String, title: String, priority: Int, dueDate: String? = null): Task {
-        return client.post("$baseUrl/tasks") {
+        android.util.Log.d("API_DEBUG", "➕ Отправляем на сервер:")
+        android.util.Log.d("API_DEBUG", "   title=$title")
+        android.util.Log.d("API_DEBUG", "   priority=$priority")
+        android.util.Log.d("API_DEBUG", "   dueDate=$dueDate")
+
+        val response = client.post("$baseUrl/tasks") {
             url { parameters.append("userId", userId) }
             contentType(ContentType.Application.Json)
             setBody(CreateTaskRequest(title, priority, dueDate))
-        }.body()
+        }
+
+        val task = response.body<Task>()
+        android.util.Log.d("API_DEBUG", "✅ Сервер вернул:")
+        android.util.Log.d("API_DEBUG", "   id=${task.id}")
+        android.util.Log.d("API_DEBUG", "   title=${task.title}")
+        android.util.Log.d("API_DEBUG", "   dueDate=${task.dueDate}")
+
+        return task
     }
 
     suspend fun updateTask(
