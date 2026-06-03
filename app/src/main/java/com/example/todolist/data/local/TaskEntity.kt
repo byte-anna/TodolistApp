@@ -12,6 +12,5 @@ data class TaskEntity(
     val isDone: Boolean,
     val priority: Int,
     val dueDate: String?,
-    val folderId: String?,
     val createdAt: String
 )

@@ -11,7 +11,6 @@ fun Task.toEntity(): TaskEntity {
         isDone = this.isDone,
         priority = this.priority,
         dueDate = this.dueDate,
-        folderId = this.folderId,
         createdAt = this.createdAt ?: ""
     )
 }
@@ -24,7 +23,6 @@ fun TaskEntity.toDomain(): Task {
         isDone = this.isDone,
         priority = this.priority,
         dueDate = this.dueDate,
-        folderId = this.folderId,
         createdAt = this.createdAt
     )
 }

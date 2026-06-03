@@ -39,11 +39,11 @@ class TodoApi(
         }.body()
     }
 
-    suspend fun createTask(userId: String, title: String, priority: Int, dueDate: String? = null, folderId: String? = null): Task {
+    suspend fun createTask(userId: String, title: String, priority: Int, dueDate: String? = null): Task {
         return client.post("$baseUrl/tasks") {
             url { parameters.append("userId", userId) }
             contentType(ContentType.Application.Json)
-            setBody(CreateTaskRequest(title, priority, dueDate, folderId))
+            setBody(CreateTaskRequest(title, priority, dueDate))
         }.body()
     }
 
@@ -53,10 +53,9 @@ class TodoApi(
         title: String? = null,
         isDone: Boolean? = null,
         priority: Int? = null,
-        dueDate: String? = null,
-        folderId: String? = null
+        dueDate: String? = null
     ): Boolean {
-        val request = UpdateTaskRequest(title, isDone, priority, dueDate, folderId)
+        val request = UpdateTaskRequest(title, isDone, priority, dueDate)
 
         val response = client.put("$baseUrl/tasks/$taskId") {
             url { parameters.append("userId", userId) }
@@ -153,8 +152,7 @@ data class AuthResponse(val userId: String, val email: String, val displayName: 
 data class CreateTaskRequest(
     val title: String,
     val priority: Int = 1,
-    val dueDate: String? = null,
-    val folderId: String? = null
+    val dueDate: String? = null
 )
 
 @Serializable
@@ -162,8 +160,7 @@ data class UpdateTaskRequest(
     val title: String? = null,
     val isDone: Boolean? = null,
     val priority: Int? = null,
-    val dueDate: String? = null,
-    val folderId: String? = null
+    val dueDate: String? = null
 )
 
 @Serializable

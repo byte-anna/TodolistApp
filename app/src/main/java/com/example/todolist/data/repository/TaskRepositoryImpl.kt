@@ -46,12 +46,12 @@ class TaskRepositoryImpl(
 
     override suspend fun createTask(userId: String, title: String, priority: Int): Result<Task> {
         return runCatching {
-            Log.d(TAG, "➕ Создаём задачу: $title")
+            Log.d(TAG, " Создаём задачу: $title")
             val task = api.createTask(userId, title, priority)
             Log.d(TAG, "✅ Задача создана на сервере с id=${task.id}")
 
             val entity = task.toEntity()
-            Log.d(TAG, "💾 Сохраняем в кэш: id=${entity.id}, title=${entity.title}")
+            Log.d(TAG, " Сохраняем в кэш: id=${entity.id}, title=${entity.title}")
             taskDao.insertAll(listOf(entity))
             Log.d(TAG, "✅ Задача сохранена в кэш")
             task
@@ -62,7 +62,7 @@ class TaskRepositoryImpl(
 
     override suspend fun updateTask(taskId: String, userId: String, isDone: Boolean): Result<Boolean> {
         return runCatching {
-            Log.d(TAG, "✏️ Обновляем статус задачи $taskId на isDone=$isDone")
+            Log.d(TAG, "️ Обновляем статус задачи $taskId на isDone=$isDone")
             val success = api.updateTask(taskId = taskId, userId = userId, isDone = isDone)
             if (success) {
                 taskDao.updateTaskStatus(taskId, isDone)
@@ -77,8 +77,7 @@ class TaskRepositoryImpl(
         userId: String,
         title: String,
         priority: Int,
-        dueDate: String?,
-        folderId: String?
+        dueDate: String?
     ): Result<Boolean> {
         return runCatching {
             Log.d(TAG, "✏️ Обновляем детали задачи $taskId")
@@ -87,11 +86,10 @@ class TaskRepositoryImpl(
                 userId = userId,
                 title = title,
                 priority = priority,
-                dueDate = dueDate,
-                folderId = folderId
+                dueDate = dueDate
             )
             if (success) {
-                taskDao.updateTaskDetails(taskId, title, priority, dueDate, folderId)
+                taskDao.updateTaskDetails(taskId, title, priority, dueDate)
                 Log.d(TAG, "✅ Детали обновлены в кэше")
             }
             success

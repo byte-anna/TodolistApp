@@ -11,8 +11,7 @@ interface TaskRepository {
         userId: String,
         title: String,
         priority: Int,
-        dueDate: String?,
-        folderId: String?
+        dueDate: String?
     ): Result<Boolean>
     suspend fun deleteTask(taskId: String, userId: String): Result<Boolean>
 }
