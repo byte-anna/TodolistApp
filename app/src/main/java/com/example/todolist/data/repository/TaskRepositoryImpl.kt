@@ -19,23 +19,23 @@ class TaskRepositoryImpl(
 
     override suspend fun getTasks(userId: String): Result<List<Task>> {
         return runCatching {
-            Log.d(TAG, "🌐 Получаем задачи с сервера для userId=$userId")
+            Log.d(TAG, "Получаем задачи с сервера для userId=$userId")
             val tasks = api.getTasks(userId)
-            Log.d(TAG, "✅ Сервер вернул ${tasks.size} задач")
+            Log.d(TAG, "Сервер вернул ${tasks.size} задач")
 
-            Log.d(TAG, "🗑️ Удаляем старые задачи из кэша")
+            Log.d(TAG, "Удаляем старые задачи из кэша")
             taskDao.deleteTasksByUser(userId)
 
             val entities = tasks.map { it.toEntity() }
-            Log.d(TAG, "💾 Вставляем ${entities.size} задач в кэш")
+            Log.d(TAG, "Вставляем ${entities.size} задач в кэш")
             taskDao.insertAll(entities)
 
-            Log.d(TAG, "✅ Кэш обновлён")
+            Log.d(TAG, "Кэш обновлён")
             tasks
         }.recoverCatching { error ->
-            Log.e(TAG, "❌ Ошибка сети: ${error.message}. Читаем из кэша")
+            Log.e(TAG, "Ошибка сети: ${error.message}. Читаем из кэша")
             val cached = taskDao.getTasksByUserSync(userId)
-            Log.d(TAG, "📦 В кэше найдено ${cached.size} задач")
+            Log.d(TAG, "В кэше найдено ${cached.size} задач")
             if (cached.isNotEmpty()) {
                 cached.map { it.toDomain() }
             } else {
@@ -44,19 +44,16 @@ class TaskRepositoryImpl(
         }
     }
 
-    override suspend fun createTask(userId: String, title: String, priority: Int): Result<Task> {
+    override suspend fun createTask(
+        userId: String,
+        title: String,
+        priority: Int,
+        dueDate: String?
+    ): Result<Task> {
         return runCatching {
-            Log.d(TAG, " Создаём задачу: $title")
-            val task = api.createTask(userId, title, priority)
-            Log.d(TAG, "✅ Задача создана на сервере с id=${task.id}")
-
-            val entity = task.toEntity()
-            Log.d(TAG, " Сохраняем в кэш: id=${entity.id}, title=${entity.title}")
-            taskDao.insertAll(listOf(entity))
-            Log.d(TAG, "✅ Задача сохранена в кэш")
+            val task = api.createTask(userId, title, priority, dueDate)  // ← ПЕРЕДАЁМ dueDate!
+            taskDao.insertAll(listOf(task.toEntity()))
             task
-        }.onFailure { error ->
-            Log.e(TAG, "❌ Ошибка создания задачи: ${error.message}")
         }
     }
 
@@ -66,7 +63,7 @@ class TaskRepositoryImpl(
             val success = api.updateTask(taskId = taskId, userId = userId, isDone = isDone)
             if (success) {
                 taskDao.updateTaskStatus(taskId, isDone)
-                Log.d(TAG, "✅ Статус обновлён в кэше")
+                Log.d(TAG, "Статус обновлён в кэше")
             }
             success
         }
@@ -80,7 +77,7 @@ class TaskRepositoryImpl(
         dueDate: String?
     ): Result<Boolean> {
         return runCatching {
-            Log.d(TAG, "✏️ Обновляем детали задачи $taskId")
+            Log.d(TAG, "✏Обновляем детали задачи $taskId")
             val success = api.updateTask(
                 taskId = taskId,
                 userId = userId,
@@ -90,7 +87,7 @@ class TaskRepositoryImpl(
             )
             if (success) {
                 taskDao.updateTaskDetails(taskId, title, priority, dueDate)
-                Log.d(TAG, "✅ Детали обновлены в кэше")
+                Log.d(TAG, "Детали обновлены в кэше")
             }
             success
         }
@@ -98,13 +95,21 @@ class TaskRepositoryImpl(
 
     override suspend fun deleteTask(taskId: String, userId: String): Result<Boolean> {
         return runCatching {
-            Log.d(TAG, "🗑️ Удаляем задачу $taskId")
+            Log.d(TAG, "Удаляем задачу $taskId")
             val success = api.deleteTask(taskId, userId)
             if (success) {
                 taskDao.deleteTask(taskId)
-                Log.d(TAG, "✅ Задача удалена из кэша")
+                Log.d(TAG, "Задача удалена из кэша")
             }
             success
+        }
+    }
+
+    override suspend fun createPost(userId: String, content: String, taskId: String?): Result<Unit> {
+        return runCatching {
+            Log.d(TAG, "📝 Создаём пост в ленте для задачи $taskId")
+            api.createPost(userId, content, taskId)
+            Log.d(TAG, "✅ Пост создан")
         }
     }
 }

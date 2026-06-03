@@ -87,27 +87,6 @@ class TodoApi(
         }.body()
     }
 
-    // === FOLDERS ===
-    suspend fun getFolders(userId: String): List<Folder> {
-        return client.get("$baseUrl/folders") {
-            url { parameters.append("userId", userId) }
-        }.body()
-    }
-
-    suspend fun createFolder(userId: String, name: String, color: String): Folder {
-        return client.post("$baseUrl/folders") {
-            url { parameters.append("userId", userId) }
-            contentType(ContentType.Application.Json)
-            setBody(CreateFolderRequest(name, color))
-        }.body()
-    }
-
-    suspend fun deleteFolder(folderId: String, userId: String): Boolean {
-        val response = client.delete("$baseUrl/folders/$folderId") {
-            url { parameters.append("userId", userId) }
-        }
-        return response.status == HttpStatusCode.OK
-    }
     suspend fun createPost(userId: String, content: String, taskId: String? = null) {
         try {
 
@@ -163,8 +142,6 @@ data class UpdateTaskRequest(
     val dueDate: String? = null
 )
 
-@Serializable
-data class CreateFolderRequest(val name: String, val color: String = "#6200EE")
 @Serializable
 data class CreatePostRequest(
     val userId: String,

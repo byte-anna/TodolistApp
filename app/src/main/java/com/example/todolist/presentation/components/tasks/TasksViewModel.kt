@@ -40,8 +40,7 @@ class TasksViewModel(
                 userId = userId,
                 title = title,
                 priority = priority,
-                dueDate = dueDate,
-                folderId = null
+                dueDate = dueDate
             )
             result.onSuccess {
                 loadTasks()
@@ -80,10 +79,17 @@ class TasksViewModel(
 
     fun addTask(title: String, priority: Int, dueDate: String? = null, shareToFeed: Boolean = false) {
         viewModelScope.launch {
-            val result = repository.createTask(userId, title, priority)
+            val result = repository.createTask(userId, title, priority, dueDate)
             result.onSuccess { createdTask ->
                 loadTasks()
                 closeDialog()
+
+                // Создаём пост в ленте, если нужно
+                if (shareToFeed) {
+                    repository.createPost(userId, createdTask.title, createdTask.id)
+                }
+
+                // Планируем напоминание
                 if (dueDate != null) {
                     NotificationScheduler.scheduleReminder(
                         getApplication<Application>(),
@@ -140,7 +146,6 @@ class TasksViewModel(
             isDone = false,
             priority = 2,
             dueDate = null,
-            folderId = null,
             createdAt = ""
         )
         _uiState.value = _uiState.value.copy(dialogTask = dummyTask)
