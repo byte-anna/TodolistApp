@@ -1,5 +1,6 @@
 package com.example.todolist.presentation.components.tasks
 
+import android.app.Application
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -12,54 +13,35 @@ import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.todolist.data.api.TodoApi
-import com.example.todolist.data.local.AppDatabase
-import com.example.todolist.data.repository.TaskRepositoryImpl
-import com.example.todolist.domain.model.Task
-import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.platform.LocalContext
-import android.app.Application
-import androidx.compose.material.icons.filled.Notifications
-import androidx.compose.material.icons.filled.Star
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.painterResource
-import com.example.todolist.presentation.components.feed.FeedScreen
+import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.todolist.R
+import com.example.todolist.data.api.TodoApi
+import com.example.todolist.domain.model.Task
+import com.example.todolist.presentation.components.feed.FeedScreen
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TasksScreen(
-    userId: String,
     api: TodoApi,
     onLogout: () -> Unit
 ) {
-    val appContext = LocalContext.current.applicationContext as Application
-    var showFeed by remember { mutableStateOf(false) }
-
-    // Создаём репозиторий с Room базой данных
-    val database = remember { AppDatabase.getDatabase(appContext) }
-    val taskDao = remember { database.taskDao() }
-    val repository = remember { TaskRepositoryImpl(api, taskDao) }
-
-    val viewModel: TasksViewModel = viewModel(
-        factory = object : androidx.lifecycle.ViewModelProvider.Factory {
-            override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T {
-                @Suppress("UNCHECKED_CAST")
-                return TasksViewModel(repository, userId, appContext) as T
-            }
-        }
-    )
-
+    val viewModel: TasksViewModel = hiltViewModel()
+    val userId by viewModel.userId.collectAsState()
     val uiState by viewModel.uiState.collectAsState()
     val searchQuery by viewModel.searchQuery.collectAsState()
     val totalCount by viewModel.completedTasksCount.collectAsState()
+    var showFeed by remember { mutableStateOf(false) }
     var showClearDialog by remember { mutableStateOf(false) }
 
     Scaffold(
@@ -87,7 +69,6 @@ fun TasksScreen(
                             tint = MaterialTheme.colorScheme.primary
                         )
                     }
-
                     TextButton(onClick = onLogout) {
                         Text("Выйти")
                     }
@@ -103,14 +84,10 @@ fun TasksScreen(
         Column(modifier = Modifier.padding(paddingValues).padding(16.dp).fillMaxSize()) {
             OutlinedTextField(
                 value = searchQuery,
-                onValueChange = { newValue ->
-                    viewModel.updateSearchQuery(newValue)
-                },
+                onValueChange = { newValue -> viewModel.updateSearchQuery(newValue) },
                 modifier = Modifier.fillMaxWidth(),
                 label = { Text("Поиск задачи...") },
-                leadingIcon = {
-                    Icon(Icons.Default.Search, contentDescription = "Поиск")
-                },
+                leadingIcon = { Icon(Icons.Default.Search, contentDescription = "Поиск") },
                 trailingIcon = {
                     if (searchQuery.isNotEmpty()) {
                         IconButton(onClick = { viewModel.clearSearch() }) {
@@ -157,14 +134,12 @@ fun TasksScreen(
 
                 if (filteredTasks.isEmpty()) {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text(
-                                text = if (searchQuery.isEmpty()) "Нет задач. Добавь первую! 👆"
-                                else "Ничего не найдено по запросу \"$searchQuery\"",
-                                style = MaterialTheme.typography.bodyLarge,
-                                color = Color.Gray
-                            )
-                        }
+                        Text(
+                            text = if (searchQuery.isEmpty()) "Нет задач. Добавь первую! 👆"
+                            else "Ничего не найдено по запросу \"$searchQuery\"",
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = Color.Gray
+                        )
                     }
                 } else {
                     LazyColumn(
@@ -204,11 +179,8 @@ fun TasksScreen(
                                             fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
                                         )
                                     }
-
                                     TextButton(
-                                        onClick = {
-                                            showClearDialog = true
-                                        },
+                                        onClick = { showClearDialog = true },
                                         colors = ButtonDefaults.textButtonColors(
                                             contentColor = MaterialTheme.colorScheme.error
                                         )
@@ -247,11 +219,7 @@ fun TasksScreen(
                                             .padding(horizontal = 20.dp),
                                         contentAlignment = Alignment.CenterEnd
                                     ) {
-                                        Icon(
-                                            Icons.Default.Delete,
-                                            contentDescription = "Удалить",
-                                            tint = Color.White
-                                        )
+                                        Icon(Icons.Default.Delete, contentDescription = "Удалить", tint = Color.White)
                                     }
                                 },
                                 dismissContent = {
@@ -280,9 +248,9 @@ fun TasksScreen(
                 isEdit = isEdit,
                 onConfirm = { title, priority, dueDate, shareToFeed ->
                     if (isEdit) {
-                        viewModel.updateTask(title, priority, dueDate)  // ← БЕЗ folderId
+                        viewModel.updateTask(title, priority, dueDate)
                     } else {
-                        viewModel.addTask(title, priority, dueDate, shareToFeed)  // ← БЕЗ null
+                        viewModel.addTask(title, priority, dueDate, shareToFeed)
                     }
                 },
                 onDismiss = { viewModel.closeDialog() }
@@ -322,7 +290,6 @@ fun TasksScreen(
         )
     }
 }
-
 
 @Composable
 fun TaskItem(
@@ -395,6 +362,4 @@ fun TaskItem(
             }
         }
     }
-
-
 }

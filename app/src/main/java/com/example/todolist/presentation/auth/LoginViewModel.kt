@@ -5,10 +5,12 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.todolist.data.api.TodoApi
 import com.example.todolist.data.local.UserPreferences
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 data class LoginUiState(
     val isLoading: Boolean = false,
@@ -18,10 +20,12 @@ data class LoginUiState(
     val error: String? = null
 )
 
-class LoginViewModel(application: Application) : AndroidViewModel(application) {
-
-    private val api = TodoApi("http://10.0.2.2:8080")
-    private val userPreferences = UserPreferences(application)
+@HiltViewModel
+class LoginViewModel @Inject constructor(
+    private val api: TodoApi,
+    private val userPreferences: UserPreferences,
+    application: Application
+) : AndroidViewModel(application) {
 
     private val _uiState = MutableStateFlow(LoginUiState())
     val uiState: StateFlow<LoginUiState> = _uiState.asStateFlow()

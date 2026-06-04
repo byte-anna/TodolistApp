@@ -3,9 +3,11 @@ package com.example.todolist.presentation.components.tasks
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.todolist.data.local.UserPreferences
 import com.example.todolist.domain.model.Task
 import com.example.todolist.domain.repository.TaskRepository
 import com.example.todolist.utils.NotificationScheduler
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -13,6 +15,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 data class TasksUiState(
     val tasks: List<Task> = emptyList(),
@@ -21,11 +24,16 @@ data class TasksUiState(
     val dialogTask: Task? = null
 )
 
-class TasksViewModel(
+@HiltViewModel
+class TasksViewModel @Inject constructor(
     private val repository: TaskRepository,
-    private val userId: String,
+    private val userPreferences: UserPreferences,
     application: Application
 ) : AndroidViewModel(application) {
+
+    val userId: StateFlow<String> = userPreferences.userId
+        .map { it ?: "" }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, "")
 
     private val _uiState = MutableStateFlow(TasksUiState())
     val uiState: StateFlow<TasksUiState> = _uiState.asStateFlow()
@@ -37,7 +45,7 @@ class TasksViewModel(
         viewModelScope.launch {
             val result = repository.updateTaskDetails(
                 taskId = task.id,
-                userId = userId,
+                userId = userId.value,
                 title = title,
                 priority = priority,
                 dueDate = dueDate
@@ -63,7 +71,7 @@ class TasksViewModel(
     fun loadTasks() {
         _uiState.value = _uiState.value.copy(isLoading = true, error = null)
         viewModelScope.launch {
-            val result = repository.getTasks(userId)
+            val result = repository.getTasks(userId.value)
             result.onSuccess { tasks ->
                 _uiState.value = _uiState.value.copy(
                     tasks = tasks.sortedWith(
@@ -79,14 +87,14 @@ class TasksViewModel(
 
     fun addTask(title: String, priority: Int, dueDate: String? = null, shareToFeed: Boolean = false) {
         viewModelScope.launch {
-            val result = repository.createTask(userId, title, priority, dueDate)
+            val result = repository.createTask(userId.value, title, priority, dueDate)
             result.onSuccess { createdTask ->
                 loadTasks()
                 closeDialog()
 
                 // Создаём пост в ленте, если нужно
                 if (shareToFeed) {
-                    repository.createPost(userId, createdTask.title, createdTask.id)
+                    repository.createPost(userId.value, createdTask.title, createdTask.id)
                 }
 
                 // Планируем напоминание
@@ -106,7 +114,7 @@ class TasksViewModel(
 
     fun toggleTask(taskId: String, isDone: Boolean) {
         viewModelScope.launch {
-            val result = repository.updateTask(taskId, userId, isDone)
+            val result = repository.updateTask(taskId, userId.value, isDone)
             result.onSuccess {
                 loadTasks()
             }.onFailure { error ->
@@ -117,7 +125,7 @@ class TasksViewModel(
 
     fun deleteTask(taskId: String) {
         viewModelScope.launch {
-            val result = repository.deleteTask(taskId, userId)
+            val result = repository.deleteTask(taskId, userId.value)
             result.onSuccess {
                 NotificationScheduler.cancelReminder(getApplication<Application>(), taskId)
                 loadTasks()
@@ -171,7 +179,7 @@ class TasksViewModel(
         viewModelScope.launch {
             val tasks = _uiState.value.tasks
             for (task in tasks) {
-                repository.deleteTask(task.id, userId)
+                repository.deleteTask(task.id, userId.value)
                 NotificationScheduler.cancelReminder(getApplication<Application>(), task.id)
             }
             loadTasks()

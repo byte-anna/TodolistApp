@@ -17,6 +17,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.content.ContextCompat
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -27,7 +28,9 @@ import com.example.todolist.presentation.auth.LoginScreen
 import com.example.todolist.presentation.auth.LoginViewModel
 import com.example.todolist.presentation.components.tasks.TasksScreen
 import kotlinx.coroutines.launch
+import dagger.hilt.android.AndroidEntryPoint
 
+@AndroidEntryPoint
 class MainActivity : ComponentActivity() {
 
 
@@ -110,8 +113,9 @@ fun AppNavigation() {
         }
 
         composable("login") {
-            val loginViewModel: LoginViewModel = viewModel()
+            val loginViewModel: LoginViewModel = hiltViewModel()  // ← hiltViewModel, а не viewModel()
             LoginScreen(
+                viewModel = loginViewModel,
                 onLoginSuccess = { id ->
                     navController.navigate("tasks") { popUpTo("login") { inclusive = true } }
                 }
@@ -119,18 +123,15 @@ fun AppNavigation() {
         }
 
         composable("tasks") {
-            userId?.let { id ->
-                TasksScreen(
-                    userId = id,
-                    api = api,
-                    onLogout = {
-                        scope.launch {
-                            userPreferences.clearUserId()
-                            navController.navigate("login") { popUpTo("tasks") { inclusive = true } }
-                        }
+            TasksScreen(
+                api = api,  // ← api всё ещё передаём (для FeedScreen)
+                onLogout = {
+                    scope.launch {
+                        userPreferences.clearUserId()
+                        navController.navigate("login") { popUpTo("tasks") { inclusive = true } }
                     }
-                )
-            }
+                }
+            )
         }
     }
 }
