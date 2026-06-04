@@ -3,6 +3,7 @@ plugins {
     id("org.jetbrains.kotlin.android")
     id("org.jetbrains.kotlin.plugin.serialization")
     id("kotlin-kapt")
+    id("com.google.dagger.hilt.android")
 }
 kapt {
     correctErrorTypes = true
@@ -105,6 +106,13 @@ dependencies {
     implementation("androidx.room:room-runtime:2.6.1")
     implementation("androidx.room:room-ktx:2.6.1")
     kapt("androidx.room:room-compiler:2.6.1")
+
+    // Hilt
+    implementation("com.google.dagger:hilt-android:2.51.1")
+    kapt("com.google.dagger:hilt-android-compiler:2.51.1")
+
+    // Hilt для Compose (нужно для работы с viewModel)
+    implementation("androidx.hilt:hilt-navigation-compose:1.2.0")
 
 
 
