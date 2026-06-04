@@ -57,6 +57,10 @@ class LoginViewModel @Inject constructor(
                 if (displayName != null) {
                     userPreferences.saveUserName(displayName)
                 }
+                // ← ДОБАВЛЕНО: сохраняем токен, если сервер его вернул
+                response.token?.let { token ->
+                    userPreferences.saveAuthToken(token)
+                }
                 _uiState.value = LoginUiState(isLoggedIn = true, userId = response.userId, userName = displayName)
             } catch (e: Exception) {
                 val message = e.message ?: "Ошибка регистрации"
@@ -87,6 +91,10 @@ class LoginViewModel @Inject constructor(
                 userPreferences.saveUserId(response.userId)
                 if (response.displayName != null) {
                     userPreferences.saveUserName(response.displayName)
+                }
+                // ← ДОБАВЛЕНО: сохраняем токен
+                response.token?.let { token ->
+                    userPreferences.saveAuthToken(token)
                 }
                 _uiState.value = LoginUiState(
                     isLoggedIn = true,
