@@ -12,12 +12,10 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.todolist.domain.model.Post
 import java.time.format.DateTimeFormatter
-import com.example.todolist.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
