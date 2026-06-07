@@ -14,8 +14,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.todolist.data.api.TodoApi
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.todolist.domain.model.Post
 import java.time.format.DateTimeFormatter
 import com.example.todolist.R
@@ -23,20 +22,18 @@ import com.example.todolist.R
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FeedScreen(
-    api: TodoApi,
-    userId: String,
-    onBackClick: () -> Unit
+    onBackClick: () -> Unit,
+    onSessionExpired: () -> Unit
 ) {
-    val viewModel: FeedViewModel = viewModel(
-        factory = object : androidx.lifecycle.ViewModelProvider.Factory {
-            override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T {
-                @Suppress("UNCHECKED_CAST")
-                return FeedViewModel(api, userId) as T
-            }
-        }
-    )
+    val viewModel: FeedViewModel = hiltViewModel()
 
     val uiState by viewModel.uiState.collectAsState()
+
+    LaunchedEffect(uiState.sessionExpired) {
+        if (uiState.sessionExpired) {
+            onSessionExpired()
+        }
+    }
 
     Scaffold(
         topBar = {

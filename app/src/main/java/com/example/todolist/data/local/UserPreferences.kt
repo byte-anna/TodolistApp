@@ -53,11 +53,14 @@ class UserPreferences(private val context: Context) {
         }
     }
 
-    suspend fun clearUserId() {
+    suspend fun clearSession() {
         context.dataStore.edit { preferences ->
             preferences.remove(PreferencesKeys.USER_ID)
             preferences.remove(PreferencesKeys.USER_NAME)
-            preferences.remove(PreferencesKeys.AUTH_TOKEN)  // ← ДОБАВЛЕНО
+            preferences.remove(PreferencesKeys.AUTH_TOKEN)
         }
+    }
+    suspend fun clearUserId() {
+        clearSession()
     }
 }

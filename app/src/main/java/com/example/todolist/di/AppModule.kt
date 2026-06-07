@@ -40,9 +40,10 @@ object AppModule {
     @Singleton
     fun provideTaskRepository(
         api: TodoApi,
-        taskDao: TaskDao
+        taskDao: TaskDao,
+        userPreferences: UserPreferences
     ): TaskRepository {
-        return TaskRepositoryImpl(api, taskDao)
+        return TaskRepositoryImpl(api, taskDao, userPreferences)
     }
 
     @Provides

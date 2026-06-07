@@ -2,7 +2,10 @@ package com.example.todolist.presentation.components.feed
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.todolist.data.api.SessionExpiredException
 import com.example.todolist.data.api.TodoApi
+import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
 import com.example.todolist.domain.model.Post
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -12,12 +15,13 @@ import kotlinx.coroutines.launch
 data class FeedUiState(
     val posts: List<Post> = emptyList(),
     val isLoading: Boolean = false,
-    val error: String? = null
+    val error: String? = null,
+    val sessionExpired: Boolean = false
 )
 
-class FeedViewModel(
-    private val api: TodoApi,
-    private val userId: String
+@HiltViewModel
+class FeedViewModel @Inject constructor(
+    private val api: TodoApi
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(FeedUiState())
@@ -37,21 +41,27 @@ class FeedViewModel(
                     isLoading = false
                 )
             } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(
-                    error = e.message,
-                    isLoading = false
-                )
+                handleError(e, isLoading = false)
             }
         }
+    }
+
+    private fun handleError(error: Throwable, isLoading: Boolean = false) {
+        _uiState.value = _uiState.value.copy(
+            error = error.message,
+            isLoading = isLoading,
+            sessionExpired = error is SessionExpiredException
+        )
     }
 
     fun toggleLike(postId: String) {
         viewModelScope.launch {
             try {
-                api.toggleLike(postId, userId)
+                api.toggleLike(postId)
                 // Перезагружаем посты, чтобы обновить счетчик
                 loadPosts()
             } catch (e: Exception) {
+                handleError(e)
             }
         }
     }

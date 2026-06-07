@@ -29,6 +29,7 @@ import com.example.todolist.presentation.auth.LoginViewModel
 import com.example.todolist.presentation.components.tasks.TasksScreen
 import kotlinx.coroutines.launch
 import dagger.hilt.android.AndroidEntryPoint
+import android.widget.Toast
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -91,22 +92,27 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun AppNavigation() {
     val navController = rememberNavController()
-    val api = remember { TodoApi("http://10.0.2.2:8080") }
-
     val context = LocalContext.current
     val userPreferences = remember { UserPreferences(context.applicationContext) }
     val scope = rememberCoroutineScope()
+
+    val authLoadingMarker = "__auth_loading__"
+    val authToken by userPreferences.authToken.collectAsState(initial = authLoadingMarker)
 
     val userId by userPreferences.userId.collectAsState(initial = null)
 
     NavHost(navController = navController, startDestination = "check_auth") {
 
         composable("check_auth") {
-            LaunchedEffect(userId) {
-                if (userId != null) {
-                    navController.navigate("tasks") { popUpTo("check_auth") { inclusive = true } }
-                } else {
-                    navController.navigate("login") { popUpTo("check_auth") { inclusive = true } }
+            LaunchedEffect(authToken) {
+                when {
+                    authToken == authLoadingMarker -> Unit
+                    authToken.isNullOrBlank() -> {
+                        navController.navigate("login") { popUpTo("check_auth") { inclusive = true } }
+                    }
+                    else -> {
+                        navController.navigate("tasks") { popUpTo("check_auth") { inclusive = true } }
+                    }
                 }
             }
             Box(modifier = Modifier.fillMaxSize())
@@ -124,10 +130,16 @@ fun AppNavigation() {
 
         composable("tasks") {
             TasksScreen(
-                api = api,  // ← api всё ещё передаём (для FeedScreen)
                 onLogout = {
                     scope.launch {
-                        userPreferences.clearUserId()
+                        userPreferences.clearSession()
+                        navController.navigate("login") { popUpTo("tasks") { inclusive = true } }
+                    }
+                },
+                onSessionExpired = {
+                    scope.launch {
+                        userPreferences.clearSession()
+                        Toast.makeText(context, "Сессия истекла, войдите снова", Toast.LENGTH_LONG).show()
                         navController.navigate("login") { popUpTo("tasks") { inclusive = true } }
                     }
                 }

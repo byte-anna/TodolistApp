@@ -3,6 +3,7 @@ package com.example.todolist.presentation.components.tasks
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.todolist.data.api.SessionExpiredException
 import com.example.todolist.data.local.UserPreferences
 import com.example.todolist.domain.model.Task
 import com.example.todolist.domain.repository.TaskRepository
@@ -21,7 +22,8 @@ data class TasksUiState(
     val tasks: List<Task> = emptyList(),
     val isLoading: Boolean = false,
     val error: String? = null,
-    val dialogTask: Task? = null
+    val dialogTask: Task? = null,
+    val sessionExpired: Boolean = false
 )
 
 @HiltViewModel
@@ -45,7 +47,6 @@ class TasksViewModel @Inject constructor(
         viewModelScope.launch {
             val result = repository.updateTaskDetails(
                 taskId = task.id,
-                userId = userId.value,
                 title = title,
                 priority = priority,
                 dueDate = dueDate
@@ -63,7 +64,7 @@ class TasksViewModel @Inject constructor(
                     )
                 }
             }.onFailure { error ->
-                _uiState.value = _uiState.value.copy(error = error.message)
+                handleError(error)
             }
         }
     }
@@ -71,7 +72,7 @@ class TasksViewModel @Inject constructor(
     fun loadTasks() {
         _uiState.value = _uiState.value.copy(isLoading = true, error = null)
         viewModelScope.launch {
-            val result = repository.getTasks(userId.value)
+            val result = repository.getTasks()
             result.onSuccess { tasks ->
                 _uiState.value = _uiState.value.copy(
                     tasks = tasks.sortedWith(
@@ -80,21 +81,25 @@ class TasksViewModel @Inject constructor(
                     isLoading = false
                 )
             }.onFailure { error ->
-                _uiState.value = _uiState.value.copy(error = error.message, isLoading = false)
+                handleError(error, isLoading = false)
             }
         }
     }
 
     fun addTask(title: String, priority: Int, dueDate: String? = null, shareToFeed: Boolean = false) {
         viewModelScope.launch {
-            val result = repository.createTask(userId.value, title, priority, dueDate)
+            val result = repository.createTask(title, priority, dueDate)
             result.onSuccess { createdTask ->
                 loadTasks()
                 closeDialog()
 
                 // Создаём пост в ленте, если нужно
                 if (shareToFeed) {
-                    repository.createPost(userId.value, createdTask.title, createdTask.id)
+                    repository.createPost(createdTask.title, createdTask.id)
+                        .onFailure { error ->
+                            handleError(error)
+                            return@launch
+                        }
                 }
 
                 // Планируем напоминание
@@ -107,30 +112,30 @@ class TasksViewModel @Inject constructor(
                     )
                 }
             }.onFailure { error ->
-                _uiState.value = _uiState.value.copy(error = error.message)
+                handleError(error)
             }
         }
     }
 
     fun toggleTask(taskId: String, isDone: Boolean) {
         viewModelScope.launch {
-            val result = repository.updateTask(taskId, userId.value, isDone)
+            val result = repository.updateTask(taskId, isDone)
             result.onSuccess {
                 loadTasks()
             }.onFailure { error ->
-                _uiState.value = _uiState.value.copy(error = error.message)
+                handleError(error)
             }
         }
     }
 
     fun deleteTask(taskId: String) {
         viewModelScope.launch {
-            val result = repository.deleteTask(taskId, userId.value)
+            val result = repository.deleteTask(taskId)
             result.onSuccess {
                 NotificationScheduler.cancelReminder(getApplication<Application>(), taskId)
                 loadTasks()
             }.onFailure { error ->
-                _uiState.value = _uiState.value.copy(error = error.message)
+                handleError(error)
             }
         }
     }
@@ -167,8 +172,16 @@ class TasksViewModel @Inject constructor(
         _uiState.value = _uiState.value.copy(dialogTask = null)
     }
 
+    private fun handleError(error: Throwable, isLoading: Boolean = false) {
+        _uiState.value = _uiState.value.copy(
+            error = error.message,
+            isLoading = isLoading,
+            sessionExpired = error is SessionExpiredException
+        )
+    }
+
     fun clearError() {
-        _uiState.value = _uiState.value.copy(error = null)
+        _uiState.value = _uiState.value.copy(error = null, sessionExpired = false)
     }
 
     val completedTasksCount: StateFlow<Int> = uiState.map { state ->
@@ -179,7 +192,11 @@ class TasksViewModel @Inject constructor(
         viewModelScope.launch {
             val tasks = _uiState.value.tasks
             for (task in tasks) {
-                repository.deleteTask(task.id, userId.value)
+                val result = repository.deleteTask(task.id)
+                result.onFailure { error ->
+                    handleError(error)
+                    return@launch
+                }
                 NotificationScheduler.cancelReminder(getApplication<Application>(), task.id)
             }
             loadTasks()

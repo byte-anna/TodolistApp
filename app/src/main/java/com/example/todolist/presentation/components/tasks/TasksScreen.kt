@@ -26,23 +26,27 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.todolist.R
-import com.example.todolist.data.api.TodoApi
 import com.example.todolist.domain.model.Task
 import com.example.todolist.presentation.components.feed.FeedScreen
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TasksScreen(
-    api: TodoApi,
-    onLogout: () -> Unit
+    onLogout: () -> Unit,
+    onSessionExpired: () -> Unit
 ) {
     val viewModel: TasksViewModel = hiltViewModel()
-    val userId by viewModel.userId.collectAsState()
     val uiState by viewModel.uiState.collectAsState()
     val searchQuery by viewModel.searchQuery.collectAsState()
     val totalCount by viewModel.completedTasksCount.collectAsState()
     var showFeed by remember { mutableStateOf(false) }
     var showClearDialog by remember { mutableStateOf(false) }
+
+    LaunchedEffect(uiState.sessionExpired) {
+        if (uiState.sessionExpired) {
+            onSessionExpired()
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -284,9 +288,8 @@ fun TasksScreen(
 
     if (showFeed) {
         FeedScreen(
-            api = api,
-            userId = userId,
-            onBackClick = { showFeed = false }
+            onBackClick = { showFeed = false },
+            onSessionExpired = onSessionExpired
         )
     }
 }

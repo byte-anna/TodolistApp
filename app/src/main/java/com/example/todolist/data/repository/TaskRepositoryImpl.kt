@@ -1,26 +1,31 @@
 package com.example.todolist.data.repository
 
 import android.util.Log
+import com.example.todolist.data.api.SessionExpiredException
 import com.example.todolist.data.api.TodoApi
 import com.example.todolist.data.local.TaskDao
+import com.example.todolist.data.local.UserPreferences
 import com.example.todolist.data.mapper.toDomain
 import com.example.todolist.data.mapper.toEntity
 import com.example.todolist.domain.model.Task
 import com.example.todolist.domain.repository.TaskRepository
+import kotlinx.coroutines.flow.first
 
 class TaskRepositoryImpl(
     private val api: TodoApi,
-    private val taskDao: TaskDao
+    private val taskDao: TaskDao,
+    private val userPreferences: UserPreferences
 ) : TaskRepository {
 
     companion object {
         private const val TAG = "ROOM_DEBUG"
     }
 
-    override suspend fun getTasks(userId: String): Result<List<Task>> {
+    override suspend fun getTasks(): Result<List<Task>> {
+        val userId = getCurrentUserId()
         return runCatching {
-            Log.d(TAG, "Получаем задачи с сервера для userId=$userId")
-            val tasks = api.getTasks(userId)
+            Log.d(TAG, "Получаем задачи с сервера для текущего пользователя")
+            val tasks = api.getTasks()
             Log.d(TAG, "Сервер вернул ${tasks.size} задач")
 
             Log.d(TAG, "Удаляем старые задачи из кэша")
@@ -33,6 +38,7 @@ class TaskRepositoryImpl(
             Log.d(TAG, "Кэш обновлён")
             tasks
         }.recoverCatching { error ->
+            if (error is SessionExpiredException) throw error
             Log.e(TAG, "Ошибка сети: ${error.message}. Читаем из кэша")
             val cached = taskDao.getTasksByUserSync(userId)
             Log.d(TAG, "В кэше найдено ${cached.size} задач")
@@ -45,22 +51,21 @@ class TaskRepositoryImpl(
     }
 
     override suspend fun createTask(
-        userId: String,
         title: String,
         priority: Int,
         dueDate: String?
     ): Result<Task> {
         return runCatching {
-            val task = api.createTask(userId, title, priority, dueDate)  // ← ПЕРЕДАЁМ dueDate!
+            val task = api.createTask(title, priority, dueDate)  // ← ПЕРЕДАЁМ dueDate!
             taskDao.insertAll(listOf(task.toEntity()))
             task
         }
     }
 
-    override suspend fun updateTask(taskId: String, userId: String, isDone: Boolean): Result<Boolean> {
+    override suspend fun updateTask(taskId: String, isDone: Boolean): Result<Boolean> {
         return runCatching {
             Log.d(TAG, "️ Обновляем статус задачи $taskId на isDone=$isDone")
-            val success = api.updateTask(taskId = taskId, userId = userId, isDone = isDone)
+            val success = api.updateTask(taskId = taskId, isDone = isDone)
             if (success) {
                 taskDao.updateTaskStatus(taskId, isDone)
                 Log.d(TAG, "Статус обновлён в кэше")
@@ -71,7 +76,6 @@ class TaskRepositoryImpl(
 
     override suspend fun updateTaskDetails(
         taskId: String,
-        userId: String,
         title: String,
         priority: Int,
         dueDate: String?
@@ -80,7 +84,6 @@ class TaskRepositoryImpl(
             Log.d(TAG, "✏Обновляем детали задачи $taskId")
             val success = api.updateTask(
                 taskId = taskId,
-                userId = userId,
                 title = title,
                 priority = priority,
                 dueDate = dueDate
@@ -93,10 +96,10 @@ class TaskRepositoryImpl(
         }
     }
 
-    override suspend fun deleteTask(taskId: String, userId: String): Result<Boolean> {
+    override suspend fun deleteTask(taskId: String): Result<Boolean> {
         return runCatching {
             Log.d(TAG, "Удаляем задачу $taskId")
-            val success = api.deleteTask(taskId, userId)
+            val success = api.deleteTask(taskId)
             if (success) {
                 taskDao.deleteTask(taskId)
                 Log.d(TAG, "Задача удалена из кэша")
@@ -105,11 +108,15 @@ class TaskRepositoryImpl(
         }
     }
 
-    override suspend fun createPost(userId: String, content: String, taskId: String?): Result<Unit> {
+    override suspend fun createPost(content: String, taskId: String?): Result<Unit> {
         return runCatching {
             Log.d(TAG, "📝 Создаём пост в ленте для задачи $taskId")
-            api.createPost(userId, content, taskId)
+            api.createPost(content, taskId)
             Log.d(TAG, "✅ Пост создан")
         }
+    }
+
+    private suspend fun getCurrentUserId(): String {
+        return userPreferences.userId.first().orEmpty()
     }
 }
