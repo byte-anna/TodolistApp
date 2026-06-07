@@ -32,6 +32,7 @@ import com.example.todolist.presentation.components.feed.FeedScreen
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TasksScreen(
+    userName: String? = null,
     onLogout: () -> Unit,
     onSessionExpired: () -> Unit
 ) {
@@ -41,6 +42,11 @@ fun TasksScreen(
     val totalCount by viewModel.completedTasksCount.collectAsState()
     var showFeed by remember { mutableStateOf(false) }
     var showClearDialog by remember { mutableStateOf(false) }
+    val displayName = remember(userName) {
+        userName
+            ?.trim()
+            ?.takeIf { it.isNotEmpty() && !it.contains("@") }
+    }
 
     LaunchedEffect(uiState.sessionExpired) {
         if (uiState.sessionExpired) {
@@ -62,7 +68,16 @@ fun TasksScreen(
                             tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(24.dp)
                         )
-                        Text("Мои задачи")
+                        Column {
+                            displayName?.let { name ->
+                                Text(
+                                    text = "Привет, $name!",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                            Text("Мои задачи")
+                        }
                     }
                 },
                 actions = {

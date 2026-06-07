@@ -101,6 +101,8 @@ fun AppNavigation() {
 
     val userId by userPreferences.userId.collectAsState(initial = null)
 
+    val userName by userPreferences.userName.collectAsState(initial = null)
+
     NavHost(navController = navController, startDestination = "check_auth") {
 
         composable("check_auth") {
@@ -130,6 +132,7 @@ fun AppNavigation() {
 
         composable("tasks") {
             TasksScreen(
+                userName = userName,
                 onLogout = {
                     scope.launch {
                         userPreferences.clearSession()
