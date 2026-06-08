@@ -1,5 +1,6 @@
 package com.example.todolist.presentation.components.tasks
 
+import com.example.todolist.data.local.UserPreferences
 import com.example.todolist.domain.model.Task
 import com.example.todolist.domain.repository.TaskRepository
 import com.example.todolist.utils.NotificationScheduler
@@ -11,6 +12,7 @@ import io.mockk.mockkObject
 import io.mockk.unmockkObject
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.*
 import org.junit.After
 import org.junit.Before
@@ -24,6 +26,7 @@ class TasksViewModelTest {
 
     private val testDispatcher = StandardTestDispatcher()
     private val mockRepository = mockk<TaskRepository>(relaxed = true)
+    private val mockUserPreferences = mockk<UserPreferences>(relaxed = true)
     private lateinit var viewModel: TasksViewModel
 
     @Before
@@ -37,9 +40,10 @@ class TasksViewModelTest {
 
         val mockApp = mockk<android.app.Application>(relaxed = true)
 
-        coEvery { mockRepository.getTasks(any()) } returns Result.success(emptyList())
+        every { mockUserPreferences.userId } returns flowOf("test_user")
+        coEvery { mockRepository.getTasks() } returns Result.success(emptyList())
 
-        viewModel = TasksViewModel(mockRepository, "test_user", mockApp)
+        viewModel = TasksViewModel(mockRepository, mockUserPreferences, mockApp)
     }
 
     @After
@@ -56,44 +60,44 @@ class TasksViewModelTest {
 
     @Test
     fun `toggleTask calls updateTask repository with correct parameters`() = runTest {
-        coEvery { mockRepository.updateTask(any(), any(), any()) } returns Result.success(true)
+        coEvery { mockRepository.updateTask(any(), any()) } returns Result.success(true)
 
         viewModel.toggleTask("task123", true)
         testDispatcher.scheduler.advanceUntilIdle()
 
-        coVerify { mockRepository.updateTask("task123", "test_user", true) }
+        coVerify { mockRepository.updateTask("task123", true) }
     }
 
     @Test
     fun `addTask calls repository and reloads tasks`() = runTest {
-        val mockTask = Task("1", "test_user", "Новая задача", false, 2, null, null, "")
+        val mockTask = Task("1", "test_user", "Новая задача", false, 2, null, null)
         coEvery { mockRepository.createTask(any(), any(), any()) } returns Result.success(mockTask)
 
         viewModel.addTask("Новая задача", 2, null, false)
         testDispatcher.scheduler.advanceUntilIdle()
 
         coVerify {
-            mockRepository.createTask("test_user", "Новая задача", 2)
+            mockRepository.createTask("Новая задача", 2, null)
         }
     }
 
     @Test
     fun `deleteTask calls deleteTask repository`() = runTest {
-        coEvery { mockRepository.deleteTask(any(), any()) } returns Result.success(true)
+        coEvery { mockRepository.deleteTask(any()) } returns Result.success(true)
 
         viewModel.deleteTask("task456")
         testDispatcher.scheduler.advanceUntilIdle()
 
-        coVerify { mockRepository.deleteTask("task456", "test_user") }
+        coVerify { mockRepository.deleteTask("task456") }
     }
 
     @Test
     fun `loadTasks updates state with fetched tasks`() = runTest {
         val mockTasks = listOf(
-            Task("1", "test_user", "Задача 1", false, 1, null, null, ""),
-            Task("2", "test_user", "Задача 2", true, 2, null, null, "")
+            Task("1", "test_user", "Задача 1", false, 1, null, null),
+            Task("2", "test_user", "Задача 2", true, 2, null, null)
         )
-        coEvery { mockRepository.getTasks("test_user") } returns Result.success(mockTasks)
+        coEvery { mockRepository.getTasks() } returns Result.success(mockTasks)
 
         viewModel.loadTasks()
         testDispatcher.scheduler.advanceUntilIdle()
@@ -105,7 +109,7 @@ class TasksViewModelTest {
 
     @Test
     fun `loadTasks handles repository error gracefully`() = runTest {
-        coEvery { mockRepository.getTasks("test_user") } returns Result.failure(Exception("Network error"))
+        coEvery { mockRepository.getTasks() } returns Result.failure(Exception("Network error"))
 
         viewModel.loadTasks()
         testDispatcher.scheduler.advanceUntilIdle()
@@ -127,10 +131,10 @@ class TasksViewModelTest {
 
     @Test
     fun `updateTask calls updateTaskDetails with correct parameters`() = runTest {
-        val task = Task("task789", "test_user", "Старая задача", false, 1, null, null, "")
+        val task = Task("task789", "test_user", "Старая задача", false, 1, null, null)
         viewModel.showEditDialog(task)
 
-        coEvery { mockRepository.updateTaskDetails(any(), any(), any(), any(), any(), any()) } returns Result.success(true)
+        coEvery { mockRepository.updateTaskDetails(any(), any(), any(), any()) } returns Result.success(true)
 
         viewModel.updateTask("Новое название", 3, "2024-12-31")
         testDispatcher.scheduler.advanceUntilIdle()
@@ -138,11 +142,9 @@ class TasksViewModelTest {
         coVerify {
             mockRepository.updateTaskDetails(
                 taskId = "task789",
-                userId = "test_user",
                 title = "Новое название",
                 priority = 3,
-                dueDate = "2024-12-31",
-                folderId = null
+                dueDate = "2024-12-31"
             )
         }
     }
@@ -150,12 +152,12 @@ class TasksViewModelTest {
     @Test
     fun `tasks are sorted by isDone and priority`() = runTest {
         val mockTasks = listOf(
-            Task("1", "test_user", "Задача 1", true, 3, null, null, ""),
-            Task("2", "test_user", "Задача 2", false, 1, null, null, ""),
-            Task("3", "test_user", "Задача 3", false, 3, null, null, ""),
-            Task("4", "test_user", "Задача 4", true, 1, null, null, "")
+            Task("1", "test_user", "Задача 1", true, 3, null, null),
+            Task("2", "test_user", "Задача 2", false, 1, null, null),
+            Task("3", "test_user", "Задача 3", false, 3, null, null),
+            Task("4", "test_user", "Задача 4", true, 1, null, null)
         )
-        coEvery { mockRepository.getTasks("test_user") } returns Result.success(mockTasks)
+        coEvery { mockRepository.getTasks() } returns Result.success(mockTasks)
 
         viewModel.loadTasks()
         testDispatcher.scheduler.advanceUntilIdle()
