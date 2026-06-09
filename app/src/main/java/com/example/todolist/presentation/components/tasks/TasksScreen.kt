@@ -2,7 +2,16 @@ package com.example.todolist.presentation.components.tasks
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
@@ -11,26 +20,52 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Star
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DismissDirection
+import androidx.compose.material3.DismissValue
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SwipeToDismiss
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.rememberDismissState
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.todolist.R
 import com.example.todolist.domain.model.Task
-import com.example.todolist.presentation.components.feed.FeedScreen
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TasksScreen(
     userName: String? = null,
+    onOpenFeed: () -> Unit,
     onLogout: () -> Unit,
     onSessionExpired: () -> Unit
 ) {
@@ -38,7 +73,6 @@ fun TasksScreen(
     val uiState by viewModel.uiState.collectAsState()
     val searchQuery by viewModel.searchQuery.collectAsState()
     val totalCount by viewModel.completedTasksCount.collectAsState()
-    var showFeed by remember { mutableStateOf(false) }
     var showClearDialog by remember { mutableStateOf(false) }
     val displayName = remember(userName) {
         userName
@@ -79,7 +113,7 @@ fun TasksScreen(
                     }
                 },
                 actions = {
-                    IconButton(onClick = { showFeed = true }) {
+                    IconButton(onClick = onOpenFeed) {
                         Icon(
                             imageVector = Icons.Default.Notifications,
                             contentDescription = "Лента достижений",
@@ -98,10 +132,15 @@ fun TasksScreen(
             }
         }
     ) { paddingValues ->
-        Column(modifier = Modifier.padding(paddingValues).padding(16.dp).fillMaxSize()) {
+        Column(
+            modifier = Modifier
+                .padding(paddingValues)
+                .padding(16.dp)
+                .fillMaxSize()
+        ) {
             OutlinedTextField(
                 value = searchQuery,
-                onValueChange = { newValue -> viewModel.updateSearchQuery(newValue) },
+                onValueChange = viewModel::updateSearchQuery,
                 modifier = Modifier.fillMaxWidth(),
                 label = { Text("Поиск задачи...") },
                 leadingIcon = { Icon(Icons.Default.Search, contentDescription = "Поиск") },
@@ -152,8 +191,11 @@ fun TasksScreen(
                 if (filteredTasks.isEmpty()) {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         Text(
-                            text = if (searchQuery.isEmpty()) "Нет задач. Добавь первую! 👆"
-                            else "Ничего не найдено по запросу \"$searchQuery\"",
+                            text = if (searchQuery.isEmpty()) {
+                                "Нет задач. Добавь первую!"
+                            } else {
+                                "Ничего не найдено по запросу \"$searchQuery\""
+                            },
                             style = MaterialTheme.typography.bodyLarge,
                             color = Color.Gray
                         )
@@ -187,13 +229,13 @@ fun TasksScreen(
                                             text = "Прогресс",
                                             style = MaterialTheme.typography.titleLarge,
                                             color = MaterialTheme.colorScheme.onPrimaryContainer,
-                                            fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
+                                            fontWeight = FontWeight.Bold
                                         )
                                         Text(
-                                            text = "Выполнено задач: ${totalCount}",
+                                            text = "Выполнено задач: $totalCount",
                                             style = MaterialTheme.typography.bodyMedium,
                                             color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f),
-                                            fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
+                                            fontWeight = FontWeight.Bold
                                         )
                                     }
                                     TextButton(
@@ -202,7 +244,7 @@ fun TasksScreen(
                                             contentColor = MaterialTheme.colorScheme.error
                                         )
                                     ) {
-                                        Text("Очистить всё", fontWeight = androidx.compose.ui.text.font.FontWeight.Medium)
+                                        Text("Очистить всё", fontWeight = FontWeight.Medium)
                                     }
                                 }
                             }
@@ -231,12 +273,17 @@ fun TasksScreen(
                                         label = "background color"
                                     )
                                     Box(
-                                        modifier = Modifier.fillMaxSize()
+                                        modifier = Modifier
+                                            .fillMaxSize()
                                             .background(color)
                                             .padding(horizontal = 20.dp),
                                         contentAlignment = Alignment.CenterEnd
                                     ) {
-                                        Icon(Icons.Default.Delete, contentDescription = "Удалить", tint = Color.White)
+                                        Icon(
+                                            Icons.Default.Delete,
+                                            contentDescription = "Удалить",
+                                            tint = Color.White
+                                        )
                                     }
                                 },
                                 dismissContent = {
@@ -278,16 +325,20 @@ fun TasksScreen(
             AlertDialog(
                 onDismissRequest = { showClearDialog = false },
                 title = { Text("Удалить все задачи?") },
-                text = { Text("Это действие нельзя отменить. Все задачи будут удалены безвозвратно.") },
+                text = {
+                    Text("Это действие нельзя отменить. Все задачи будут удалены безвозвратно.")
+                },
                 confirmButton = {
                     TextButton(
                         onClick = {
                             viewModel.clearAllTasks()
                             showClearDialog = false
                         },
-                        colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
+                        colors = ButtonDefaults.textButtonColors(
+                            contentColor = MaterialTheme.colorScheme.error
+                        )
                     ) {
-                        Text("Удалить", fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)
+                        Text("Удалить", fontWeight = FontWeight.Bold)
                     }
                 },
                 dismissButton = {
@@ -297,13 +348,6 @@ fun TasksScreen(
                 }
             )
         }
-    }
-
-    if (showFeed) {
-        FeedScreen(
-            onBackClick = { showFeed = false },
-            onSessionExpired = onSessionExpired
-        )
     }
 }
 
@@ -325,7 +369,7 @@ fun TaskItem(
             val localDateTime = java.time.LocalDateTime.parse(dateStr)
             val formatter = java.time.format.DateTimeFormatter.ofPattern("dd.MM HH:mm")
             "⏰ ${localDateTime.format(formatter)}"
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             "⏰ $dateStr"
         }
     }
@@ -335,36 +379,57 @@ fun TaskItem(
             val deadline = java.time.LocalDateTime.parse(task.dueDate)
             val now = java.time.LocalDateTime.now()
             if (!task.isDone && deadline.isBefore(now)) Color.Red else Color.Gray
-        } catch (e: Exception) { Color.Gray }
-    } else { Color.Gray }
+        } catch (_: Exception) {
+            Color.Gray
+        }
+    } else {
+        Color.Gray
+    }
 
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
-            containerColor = if (task.isDone)
+            containerColor = if (task.isDone) {
                 Color.LightGray.copy(alpha = 0.3f)
-            else MaterialTheme.colorScheme.surface
+            } else {
+                MaterialTheme.colorScheme.surface
+            }
         )
     ) {
-        Column(modifier = Modifier.padding(16.dp).fillMaxWidth()) {
+        Column(
+            modifier = Modifier
+                .padding(16.dp)
+                .fillMaxWidth()
+        ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Checkbox(checked = task.isDone, onCheckedChange = { onToggle() })
+                androidx.compose.material3.Checkbox(
+                    checked = task.isDone,
+                    onCheckedChange = { onToggle() }
+                )
                 Text(
                     text = task.title,
                     style = MaterialTheme.typography.bodyMedium.copy(
                         color = if (task.isDone) Color.Gray else Color.Black,
                         textDecoration = if (task.isDone) TextDecoration.LineThrough else null
                     ),
-                    modifier = Modifier.weight(1f).padding(horizontal = 8.dp)
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(horizontal = 8.dp)
                 )
                 IconButton(onClick = onEdit) {
-                    Icon(Icons.Default.Edit, contentDescription = "Редактировать", tint = Color.Gray)
+                    Icon(
+                        Icons.Default.Edit,
+                        contentDescription = "Редактировать",
+                        tint = Color.Gray
+                    )
                 }
                 Box(
-                    modifier = Modifier.size(12.dp).background(priorityColor, shape = CircleShape)
+                    modifier = Modifier
+                        .size(12.dp)
+                        .background(priorityColor, shape = CircleShape)
                 )
             }
             dueDateText?.let { text ->
