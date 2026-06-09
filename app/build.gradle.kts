@@ -90,6 +90,7 @@ dependencies {
     androidTestImplementation("androidx.test.ext:junit:1.1.5")
     androidTestImplementation("androidx.compose.ui:ui-test-junit4:1.5.4")
     debugImplementation("androidx.compose.ui:ui-tooling")
+    debugImplementation("androidx.compose.ui:ui-test-manifest:1.5.4")
 
 
     androidTestImplementation("androidx.test.ext:junit:1.1.5")
