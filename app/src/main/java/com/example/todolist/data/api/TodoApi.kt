@@ -4,20 +4,32 @@ import android.util.Log
 import com.example.todolist.data.local.UserPreferences
 import com.example.todolist.domain.model.Post
 import com.example.todolist.domain.model.Task
-import io.ktor.client.*
-import io.ktor.client.call.*
-import io.ktor.client.engine.android.*
-import io.ktor.client.plugins.contentnegotiation.*
-import io.ktor.client.plugins.logging.*
-import io.ktor.client.request.*
-import io.ktor.client.statement.*
-import io.ktor.http.*
-import io.ktor.serialization.kotlinx.json.*
+import com.example.todolist.domain.model.TaskCategory
+import io.ktor.client.HttpClient
+import io.ktor.client.call.body
+import io.ktor.client.engine.android.Android
+import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
+import io.ktor.client.plugins.logging.LogLevel
+import io.ktor.client.plugins.logging.Logger
+import io.ktor.client.plugins.logging.Logging
+import io.ktor.client.request.delete
+import io.ktor.client.request.get
+import io.ktor.client.request.header
+import io.ktor.client.request.post
+import io.ktor.client.request.put
+import io.ktor.client.request.setBody
+import io.ktor.client.statement.HttpResponse
+import io.ktor.client.statement.bodyAsText
+import io.ktor.http.ContentType
+import io.ktor.http.HttpHeaders
+import io.ktor.http.HttpStatusCode
+import io.ktor.serialization.kotlinx.json.json
 import kotlinx.coroutines.flow.first
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
+import java.time.LocalDateTime
 
 class SessionExpiredException : Exception("Сессия истекла, войдите снова")
 
@@ -25,21 +37,25 @@ class TodoApi(
     private val baseUrl: String = "http://10.0.2.2:8080",
     private val userPreferences: UserPreferences? = null
 ) {
+    private val json = Json {
+        ignoreUnknownKeys = true
+        isLenient = true
+        prettyPrint = true
+    }
+
     private val client = HttpClient(Android) {
         install(ContentNegotiation) {
-            json(Json {
-                ignoreUnknownKeys = true
-                isLenient = true
-                prettyPrint = true
-            })
+            json(json)
         }
         install(Logging) {
-            logger = Logger.DEFAULT
+            logger = object : Logger {
+                override fun log(message: String) {
+                    Log.d("HTTP_CLIENT", message)
+                }
+            }
             level = LogLevel.INFO
         }
-
         install(io.ktor.client.plugins.HttpRequestRetry) {
-            // Опционально: retry при ошибках
         }
     }
 
@@ -53,7 +69,32 @@ class TodoApi(
         }
     }
 
-    // === TASKS ===
+    private suspend fun throwIfRequestFailed(response: HttpResponse, fallbackMessage: String) {
+        ensureAuthorized(response)
+        if (response.status.value !in 200..299) {
+            val errorText = response.bodyAsText()
+            val serverMessage = runCatching {
+                json.decodeFromString<ErrorResponse>(errorText).error
+            }.getOrNull()
+            val message = serverMessage?.takeIf { it.isNotBlank() }
+                ?: errorText.takeIf { it.isNotBlank() }
+                ?: fallbackMessage
+            throw IllegalStateException("$fallbackMessage: $message")
+        }
+    }
+
+    private fun normalizeOutgoingPriority(priority: Int): Int {
+        return priority.coerceAtLeast(1)
+    }
+
+    private fun requireIsoDueDate(dueDate: String?) {
+        if (dueDate == null) return
+        runCatching {
+            LocalDateTime.parse(dueDate)
+        }.getOrElse {
+            throw IllegalArgumentException("Некорректный формат dueDate. Ожидается ISO LocalDateTime")
+        }
+    }
 
     suspend fun getTasks(): List<Task> {
         val response = client.get("$baseUrl/tasks") {
@@ -63,44 +104,39 @@ class TodoApi(
         }
 
         ensureAuthorized(response)
-
         return response.body()
     }
 
     suspend fun createTask(
         title: String,
         priority: Int,
-        dueDate: String? = null
+        dueDate: String? = null,
+        category: TaskCategory = TaskCategory.NONE
     ): Task {
-        Log.d("API_DEBUG", "➕ Отправляем на сервер:")
-        Log.d("API_DEBUG", "   title=$title")
-        Log.d("API_DEBUG", "   priority=$priority")
-        Log.d("API_DEBUG", "   dueDate=$dueDate")
+        val normalizedTitle = title.trim()
+        require(normalizedTitle.isNotEmpty()) { "Название задачи не может быть пустым" }
+        requireIsoDueDate(dueDate)
+
+        val normalizedPriority = normalizeOutgoingPriority(priority)
+        val requestBody = buildJsonObject {
+            put("title", normalizedTitle)
+            put("priority", normalizedPriority)
+            put("category", category.name)
+            dueDate?.let { put("dueDate", it) }
+        }
+
+        Log.d("API_DEBUG", "POST /tasks body=$requestBody")
 
         val response = client.post("$baseUrl/tasks") {
-            contentType(ContentType.Application.Json)
+            header(HttpHeaders.ContentType, ContentType.Application.Json.toString())
             getToken()?.let { token ->
                 header(HttpHeaders.Authorization, "Bearer $token")
             }
-            setBody(
-                buildJsonObject {
-                    put("title", title)
-                    put("priority", priority)
-                    dueDate?.let { put("dueDate", it) }
-                }
-            )
+            setBody(requestBody)
         }
 
-        ensureAuthorized(response)
-
-        val task = response.body<Task>()
-
-        Log.d("API_DEBUG", "✅ Сервер вернул:")
-        Log.d("API_DEBUG", "   id=${task.id}")
-        Log.d("API_DEBUG", "   title=${task.title}")
-        Log.d("API_DEBUG", "   dueDate=${task.dueDate}")
-
-        return task
+        throwIfRequestFailed(response, "Ошибка создания задачи")
+        return response.body()
     }
 
     suspend fun updateTask(
@@ -108,25 +144,33 @@ class TodoApi(
         title: String? = null,
         isDone: Boolean? = null,
         priority: Int? = null,
-        dueDate: String? = null
+        dueDate: String? = null,
+        category: TaskCategory? = null
     ): Boolean {
+        title?.let {
+            require(it.trim().isNotEmpty()) { "Название задачи не может быть пустым" }
+        }
+        requireIsoDueDate(dueDate)
+
         val request = buildJsonObject {
-            title?.let { put("title", it) }
+            title?.trim()?.let { put("title", it) }
             isDone?.let { put("isDone", it) }
-            priority?.let { put("priority", it) }
+            priority?.let { put("priority", normalizeOutgoingPriority(it)) }
             dueDate?.let { put("dueDate", it) }
+            category?.let { put("category", it.name) }
         }
 
+        Log.d("API_DEBUG", "PUT /tasks/$taskId body=$request")
+
         val response = client.put("$baseUrl/tasks/$taskId") {
-            contentType(ContentType.Application.Json)
+            header(HttpHeaders.ContentType, ContentType.Application.Json.toString())
             getToken()?.let { token ->
                 header(HttpHeaders.Authorization, "Bearer $token")
             }
             setBody(request)
         }
 
-        ensureAuthorized(response)
-
+        throwIfRequestFailed(response, "Ошибка обновления задачи")
         return response.status == HttpStatusCode.OK
     }
 
@@ -138,11 +182,8 @@ class TodoApi(
         }
 
         ensureAuthorized(response)
-
         return response.status == HttpStatusCode.OK
     }
-
-    // === AUTH ===
 
     suspend fun register(
         email: String,
@@ -150,7 +191,7 @@ class TodoApi(
         displayName: String? = null
     ): AuthResponse {
         return client.post("$baseUrl/auth/register") {
-            contentType(ContentType.Application.Json)
+            header(HttpHeaders.ContentType, ContentType.Application.Json.toString())
             setBody(RegisterRequest(email, password, displayName))
         }.body()
     }
@@ -160,19 +201,17 @@ class TodoApi(
         password: String
     ): AuthResponse {
         return client.post("$baseUrl/auth/login") {
-            contentType(ContentType.Application.Json)
+            header(HttpHeaders.ContentType, ContentType.Application.Json.toString())
             setBody(LoginRequest(email, password))
         }.body()
     }
-
-    // === POSTS ===
 
     suspend fun createPost(
         content: String,
         taskId: String? = null
     ) {
         val response = client.post("$baseUrl/posts") {
-            contentType(ContentType.Application.Json)
+            header(HttpHeaders.ContentType, ContentType.Application.Json.toString())
             getToken()?.let { token ->
                 header(HttpHeaders.Authorization, "Bearer $token")
             }
@@ -184,12 +223,7 @@ class TodoApi(
             )
         }
 
-        ensureAuthorized(response)
-
-        if (response.status != HttpStatusCode.Created && response.status != HttpStatusCode.OK) {
-            val errorText = response.bodyAsText()
-            throw IllegalStateException("Ошибка создания поста: ${response.status}. $errorText")
-        }
+        throwIfRequestFailed(response, "Ошибка создания поста")
     }
 
     suspend fun getPosts(): List<Post> {
@@ -200,14 +234,13 @@ class TodoApi(
         }
 
         ensureAuthorized(response)
-
         return response.body()
     }
 
     suspend fun toggleLike(postId: String) {
         try {
             val response = client.post("$baseUrl/posts/$postId/like") {
-                contentType(ContentType.Application.Json)
+                header(HttpHeaders.ContentType, ContentType.Application.Json.toString())
                 getToken()?.let { token ->
                     header(HttpHeaders.Authorization, "Bearer $token")
                 }
@@ -216,13 +249,10 @@ class TodoApi(
             ensureAuthorized(response)
         } catch (e: SessionExpiredException) {
             throw e
-        } catch (e: Exception) {
-            // Пока оставляем без обработки, чтобы не делать большой рефакторинг.
+        } catch (_: Exception) {
         }
     }
 }
-
-// === REQUEST/RESPONSE MODELS ===
 
 @Serializable
 data class RegisterRequest(

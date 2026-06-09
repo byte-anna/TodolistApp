@@ -60,7 +60,7 @@ class TaskRepositoryImpl(
         category: TaskCategory
     ): Result<Task> {
         return runCatching {
-            val task = api.createTask(title, priority, dueDate).copy(category = category)
+            val task = api.createTask(title, priority, dueDate, category).copy(category = category)
             taskDao.insertAll(listOf(task.toEntity()))
             task
         }
@@ -88,7 +88,8 @@ class TaskRepositoryImpl(
                 taskId = taskId,
                 title = title,
                 priority = priority,
-                dueDate = dueDate
+                dueDate = dueDate,
+                category = category
             )
             if (success) {
                 taskDao.updateTaskDetails(taskId, title, priority, dueDate, category.name)
