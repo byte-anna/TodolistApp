@@ -9,6 +9,7 @@ import com.example.todolist.data.mapper.toDomain
 import com.example.todolist.data.mapper.toEntity
 import com.example.todolist.domain.model.Task
 import com.example.todolist.domain.model.TaskCategory
+import com.example.todolist.domain.model.TaskPriority
 import com.example.todolist.domain.repository.TaskRepository
 import kotlinx.coroutines.flow.first
 
@@ -35,7 +36,10 @@ class TaskRepositoryImpl(
             taskDao.deleteTasksByUser(userId)
 
             val entities = tasks.map { task ->
-                task.copy(category = TaskCategory.fromName(cachedCategories[task.id])).toEntity()
+                task.copy(
+                    priority = TaskPriority.fromApiValue(task.priority).value,
+                    category = TaskCategory.fromName(cachedCategories[task.id])
+                ).toEntity()
             }
             taskDao.insertAll(entities)
 
@@ -60,7 +64,11 @@ class TaskRepositoryImpl(
         category: TaskCategory
     ): Result<Task> {
         return runCatching {
-            val task = api.createTask(title, priority, dueDate, category).copy(category = category)
+            val serverTask = api.createTask(title, priority, dueDate, category)
+            val task = serverTask.copy(
+                priority = TaskPriority.fromApiValue(serverTask.priority).value,
+                category = category
+            )
             taskDao.insertAll(listOf(task.toEntity()))
             task
         }

@@ -14,7 +14,7 @@ import org.junit.Test
 class TaskMapperAndPriorityTest {
 
     @Test
-    fun taskToEntity_mapsIdentityAndTitleFields() {
+    fun taskToEntityMapsIdentityAndTitleFields() {
         val task = task(id = "task-1", userId = "user-1", title = "Купить продукты")
 
         val entity = task.toEntity()
@@ -25,7 +25,7 @@ class TaskMapperAndPriorityTest {
     }
 
     @Test
-    fun taskToEntity_mapsCompletionState() {
+    fun taskToEntityMapsCompletionState() {
         val task = task(isDone = true)
 
         val entity = task.toEntity()
@@ -34,7 +34,7 @@ class TaskMapperAndPriorityTest {
     }
 
     @Test
-    fun taskToEntity_mapsPriorityValue() {
+    fun taskToEntityMapsPriorityValue() {
         val task = task(priority = TaskPriority.HIGH.value)
 
         val entity = task.toEntity()
@@ -43,7 +43,7 @@ class TaskMapperAndPriorityTest {
     }
 
     @Test
-    fun taskToEntity_mapsCategoryName() {
+    fun taskToEntityMapsCategoryName() {
         val task = task(category = TaskCategory.WORK)
 
         val entity = task.toEntity()
@@ -52,7 +52,7 @@ class TaskMapperAndPriorityTest {
     }
 
     @Test
-    fun taskToEntity_mapsDueDateWhenPresent() {
+    fun taskToEntityMapsDueDateWhenPresent() {
         val task = task(dueDate = "2026-06-08T10:00:00")
 
         val entity = task.toEntity()
@@ -61,7 +61,7 @@ class TaskMapperAndPriorityTest {
     }
 
     @Test
-    fun taskToEntity_usesEmptyCreatedAtWhenTaskCreatedAtIsNull() {
+    fun taskToEntityUsesEmptyCreatedAtWhenTaskCreatedAtIsNull() {
         val task = task(createdAt = null)
 
         val entity = task.toEntity()
@@ -70,7 +70,7 @@ class TaskMapperAndPriorityTest {
     }
 
     @Test
-    fun taskEntityToDomain_mapsIdentityAndTitleFields() {
+    fun taskEntityToDomainMapsIdentityAndTitleFields() {
         val entity = entity(id = "task-2", userId = "user-2", title = "Сделать отчет")
 
         val task = entity.toDomain()
@@ -81,7 +81,7 @@ class TaskMapperAndPriorityTest {
     }
 
     @Test
-    fun taskEntityToDomain_mapsStatusPriorityDatesAndCategory() {
+    fun taskEntityToDomainMapsStatusPriorityDatesAndCategory() {
         val entity = entity(
             isDone = true,
             priority = TaskPriority.LOW.value,
@@ -100,7 +100,7 @@ class TaskMapperAndPriorityTest {
     }
 
     @Test
-    fun taskEntityToDomain_keepsDueDateNullWhenCacheHasNoDueDate() {
+    fun taskEntityToDomainKeepsDueDateNullWhenCacheHasNoDueDate() {
         val entity = entity(dueDate = null)
 
         val task = entity.toDomain()
@@ -109,7 +109,7 @@ class TaskMapperAndPriorityTest {
     }
 
     @Test
-    fun taskEntityToDomain_keepsTaskNotSharedByDefault() {
+    fun taskEntityToDomainKeepsTaskNotSharedByDefault() {
         val entity = entity()
 
         val task = entity.toDomain()
@@ -118,12 +118,24 @@ class TaskMapperAndPriorityTest {
     }
 
     @Test
-    fun taskPriorityFromValue_returnsMatchingPriorityOrMediumForUnknownValue() {
+    fun taskPriorityFromValueReturnsMatchingPriorityOrMediumForUnknownValue() {
         assertEquals(TaskPriority.LOW, TaskPriority.fromValue(0))
         assertEquals(TaskPriority.MEDIUM, TaskPriority.fromValue(1))
         assertEquals(TaskPriority.HIGH, TaskPriority.fromValue(2))
         assertEquals(TaskPriority.MEDIUM, TaskPriority.fromValue(-1))
         assertEquals(TaskPriority.MEDIUM, TaskPriority.fromValue(99))
+    }
+
+    @Test
+    fun taskPriorityApiMappingConvertsBetweenClientAndServerValues() {
+        assertEquals(1, TaskPriority.toApiValue(TaskPriority.LOW.value))
+        assertEquals(2, TaskPriority.toApiValue(TaskPriority.MEDIUM.value))
+        assertEquals(3, TaskPriority.toApiValue(TaskPriority.HIGH.value))
+
+        assertEquals(TaskPriority.LOW, TaskPriority.fromApiValue(1))
+        assertEquals(TaskPriority.MEDIUM, TaskPriority.fromApiValue(2))
+        assertEquals(TaskPriority.HIGH, TaskPriority.fromApiValue(3))
+        assertEquals(TaskPriority.MEDIUM, TaskPriority.fromApiValue(99))
     }
 
     private fun task(

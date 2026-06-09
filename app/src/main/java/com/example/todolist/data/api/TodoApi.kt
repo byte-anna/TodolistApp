@@ -5,6 +5,7 @@ import com.example.todolist.data.local.UserPreferences
 import com.example.todolist.domain.model.Post
 import com.example.todolist.domain.model.Task
 import com.example.todolist.domain.model.TaskCategory
+import com.example.todolist.domain.model.TaskPriority
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.engine.android.Android
@@ -84,7 +85,7 @@ class TodoApi(
     }
 
     private fun normalizeOutgoingPriority(priority: Int): Int {
-        return priority.coerceAtLeast(1)
+        return TaskPriority.toApiValue(priority)
     }
 
     private fun requireIsoDueDate(dueDate: String?) {
