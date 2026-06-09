@@ -64,15 +64,20 @@ class TasksViewModel @Inject constructor(
     private val _selectedSort = MutableStateFlow(TaskSortOption.PRIORITY)
     val selectedSort: StateFlow<TaskSortOption> = _selectedSort.asStateFlow()
 
+    private val _selectedCategoryFilter = MutableStateFlow(TaskCategoryFilter.ALL)
+    val selectedCategoryFilter: StateFlow<TaskCategoryFilter> = _selectedCategoryFilter.asStateFlow()
+
     val visibleTasks: StateFlow<List<Task>> = combine(
         uiState,
         searchQuery,
         selectedFilter,
-        selectedSort
-    ) { state, query, filter, sort ->
+        selectedSort,
+        selectedCategoryFilter
+    ) { state, query, filter, sort, categoryFilter ->
         state.tasks
             .filterByQuery(query)
             .filterByType(filter)
+            .filterByCategory(categoryFilter)
             .sortByOption(sort)
     }.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
@@ -199,6 +204,10 @@ class TasksViewModel @Inject constructor(
         _selectedSort.value = sort
     }
 
+    fun updateCategoryFilter(filter: TaskCategoryFilter) {
+        _selectedCategoryFilter.value = filter
+    }
+
     fun showAddDialog() {
         _uiState.value = _uiState.value.copy(
             dialogTask = Task(
@@ -266,6 +275,11 @@ class TasksViewModel @Inject constructor(
                 !task.isDone && task.dueDate?.let(::parseDateTime)?.isBefore(LocalDateTime.now()) == true
             }
         }
+    }
+
+    private fun List<Task>.filterByCategory(filter: TaskCategoryFilter): List<Task> {
+        val targetCategory = filter.category ?: return this
+        return filter { it.category == targetCategory }
     }
 
     private fun List<Task>.sortByOption(sort: TaskSortOption): List<Task> {

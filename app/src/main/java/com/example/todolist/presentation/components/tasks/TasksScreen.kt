@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
@@ -86,6 +87,7 @@ fun TasksScreen(
     val searchQuery by viewModel.searchQuery.collectAsState()
     val selectedFilter by viewModel.selectedFilter.collectAsState()
     val selectedSort by viewModel.selectedSort.collectAsState()
+    val selectedCategoryFilter by viewModel.selectedCategoryFilter.collectAsState()
     val visibleTasks by viewModel.visibleTasks.collectAsState()
     val totalCount by viewModel.completedTasksCount.collectAsState()
     var showClearDialog by remember { mutableStateOf(false) }
@@ -188,17 +190,27 @@ fun TasksScreen(
             )
 
             Spacer(modifier = Modifier.height(16.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                TaskFilter.entries.forEach { filter ->
+            Text("Статус", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
+            Spacer(modifier = Modifier.height(8.dp))
+            LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                items(TaskFilter.entries) { filter ->
                     FilterChip(
                         selected = selectedFilter == filter,
                         onClick = { viewModel.updateFilter(filter) },
                         label = { Text(filter.toLabel()) }
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+            Text("Категория", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
+            Spacer(modifier = Modifier.height(8.dp))
+            LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                items(TaskCategoryFilter.entries) { filter ->
+                    FilterChip(
+                        selected = selectedCategoryFilter == filter,
+                        onClick = { viewModel.updateCategoryFilter(filter) },
+                        label = { Text(filter.label) }
                     )
                 }
             }
@@ -263,11 +275,10 @@ fun TasksScreen(
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         Text(
-                            text = if (searchQuery.isEmpty()) {
-                                stringResource(R.string.tasks_empty)
-                            } else {
-                                stringResource(R.string.tasks_search_empty, searchQuery)
-                            },
+                            text = emptyStateMessage(
+                                searchQuery = searchQuery,
+                                selectedCategoryFilter = selectedCategoryFilter
+                            ),
                             style = MaterialTheme.typography.bodyLarge,
                             color = Color.Gray
                         )
@@ -432,6 +443,18 @@ fun TasksScreen(
                 }
             )
         }
+    }
+}
+
+private fun emptyStateMessage(
+    searchQuery: String,
+    selectedCategoryFilter: TaskCategoryFilter
+): String {
+    return when {
+        searchQuery.isNotEmpty() -> "Ничего не найдено по запросу \"$searchQuery\""
+        selectedCategoryFilter != TaskCategoryFilter.ALL ->
+            "В категории \"${selectedCategoryFilter.label}\" пока нет задач"
+        else -> "Нет задач. Добавь первую!"
     }
 }
 

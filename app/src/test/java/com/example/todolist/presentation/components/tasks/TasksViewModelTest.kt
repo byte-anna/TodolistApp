@@ -226,6 +226,40 @@ class TasksViewModelTest {
     }
 
     @Test
+    fun visibleTasksFiltersBySelectedCategory() = runTest {
+        val mockTasks = listOf(
+            Task(
+                id = "1",
+                userId = "test_user",
+                title = "Лабораторная",
+                isDone = false,
+                priority = TaskPriority.MEDIUM.value,
+                dueDate = null,
+                createdAt = null,
+                category = TaskCategory.STUDY
+            ),
+            Task(
+                id = "2",
+                userId = "test_user",
+                title = "Рабочая встреча",
+                isDone = false,
+                priority = TaskPriority.HIGH.value,
+                dueDate = null,
+                createdAt = null,
+                category = TaskCategory.WORK
+            )
+        )
+        coEvery { mockRepository.getTasks() } returns Result.success(mockTasks)
+
+        viewModel.loadTasks()
+        viewModel.updateCategoryFilter(TaskCategoryFilter.STUDY)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(1, viewModel.visibleTasks.value.size)
+        assertEquals("Лабораторная", viewModel.visibleTasks.value.first().title)
+    }
+
+    @Test
     fun updateSearchQueryUpdatesSearchQueryState() = runTest {
         viewModel.updateSearchQuery("Купить")
         testDispatcher.scheduler.advanceUntilIdle()
