@@ -1,19 +1,19 @@
 package com.example.todolist.presentation.components.tasks
 
-import android.app.Application
-import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.todolist.data.api.SessionExpiredException
-import com.example.todolist.data.local.UserPreferences
 import com.example.todolist.domain.model.Task
 import com.example.todolist.domain.model.TaskPriority
+import com.example.todolist.domain.usecase.reminder.CancelReminderUseCase
+import com.example.todolist.domain.usecase.reminder.ScheduleReminderUseCase
+import com.example.todolist.domain.usecase.session.ObserveUserIdUseCase
 import com.example.todolist.domain.usecase.tasks.CreatePostUseCase
 import com.example.todolist.domain.usecase.tasks.CreateTaskUseCase
 import com.example.todolist.domain.usecase.tasks.DeleteTaskUseCase
 import com.example.todolist.domain.usecase.tasks.GetTasksUseCase
 import com.example.todolist.domain.usecase.tasks.UpdateTaskDetailsUseCase
 import com.example.todolist.domain.usecase.tasks.UpdateTaskStatusUseCase
-import com.example.todolist.utils.NotificationScheduler
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -40,11 +40,12 @@ class TasksViewModel @Inject constructor(
     private val updateTaskDetailsUseCase: UpdateTaskDetailsUseCase,
     private val deleteTaskUseCase: DeleteTaskUseCase,
     private val createPostUseCase: CreatePostUseCase,
-    private val userPreferences: UserPreferences,
-    application: Application
-) : AndroidViewModel(application) {
+    private val observeUserIdUseCase: ObserveUserIdUseCase,
+    private val scheduleReminderUseCase: ScheduleReminderUseCase,
+    private val cancelReminderUseCase: CancelReminderUseCase
+) : ViewModel() {
 
-    val userId: StateFlow<String> = userPreferences.userId
+    val userId: StateFlow<String> = observeUserIdUseCase()
         .map { it ?: "" }
         .stateIn(viewModelScope, SharingStarted.Eagerly, "")
 
@@ -73,14 +74,9 @@ class TasksViewModel @Inject constructor(
             ).onSuccess {
                 loadTasks()
                 closeDialog()
-                NotificationScheduler.cancelReminder(getApplication<Application>(), task.id)
+                cancelReminderUseCase(task.id)
                 if (dueDate != null) {
-                    NotificationScheduler.scheduleReminder(
-                        getApplication<Application>(),
-                        task.id,
-                        title,
-                        dueDate
-                    )
+                    scheduleReminderUseCase(task.id, title, dueDate)
                 }
             }.onFailure { error ->
                 handleError(error)
@@ -127,12 +123,7 @@ class TasksViewModel @Inject constructor(
                     }
 
                     if (dueDate != null) {
-                        NotificationScheduler.scheduleReminder(
-                            getApplication<Application>(),
-                            createdTask.id,
-                            title,
-                            dueDate
-                        )
+                        scheduleReminderUseCase(createdTask.id, title, dueDate)
                     }
                 }
                 .onFailure { error ->
@@ -157,7 +148,7 @@ class TasksViewModel @Inject constructor(
         viewModelScope.launch {
             deleteTaskUseCase(taskId)
                 .onSuccess {
-                    NotificationScheduler.cancelReminder(getApplication<Application>(), taskId)
+                    cancelReminderUseCase(taskId)
                     loadTasks()
                 }
                 .onFailure { error ->
@@ -209,7 +200,7 @@ class TasksViewModel @Inject constructor(
                         handleError(error)
                         return@launch
                     }
-                NotificationScheduler.cancelReminder(getApplication<Application>(), task.id)
+                cancelReminderUseCase(task.id)
             }
             loadTasks()
         }

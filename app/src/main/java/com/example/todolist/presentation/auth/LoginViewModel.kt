@@ -1,11 +1,12 @@
 package com.example.todolist.presentation.auth
 
-import android.app.Application
-import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.todolist.data.local.UserPreferences
 import com.example.todolist.domain.usecase.auth.LoginUseCase
 import com.example.todolist.domain.usecase.auth.RegisterUseCase
+import com.example.todolist.domain.usecase.session.ClearSessionUseCase
+import com.example.todolist.domain.usecase.session.ObserveAuthTokenUseCase
+import com.example.todolist.domain.usecase.session.ObserveUserIdUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -26,18 +27,19 @@ data class LoginUiState(
 class LoginViewModel @Inject constructor(
     private val loginUseCase: LoginUseCase,
     private val registerUseCase: RegisterUseCase,
-    private val userPreferences: UserPreferences,
-    application: Application
-) : AndroidViewModel(application) {
+    private val observeAuthTokenUseCase: ObserveAuthTokenUseCase,
+    private val observeUserIdUseCase: ObserveUserIdUseCase,
+    private val clearSessionUseCase: ClearSessionUseCase
+) : ViewModel() {
 
     private val _uiState = MutableStateFlow(LoginUiState())
     val uiState: StateFlow<LoginUiState> = _uiState.asStateFlow()
 
     init {
         viewModelScope.launch {
-            userPreferences.authToken.collect { savedToken ->
+            observeAuthTokenUseCase().collect { savedToken ->
                 if (!savedToken.isNullOrBlank()) {
-                    val savedUserId = userPreferences.userId.first()
+                    val savedUserId = observeUserIdUseCase().first()
                     if (savedUserId != null) {
                         _uiState.value = LoginUiState(isLoggedIn = true, userId = savedUserId)
                     }
@@ -118,7 +120,7 @@ class LoginViewModel @Inject constructor(
 
     fun logout() {
         viewModelScope.launch {
-            userPreferences.clearSession()
+            clearSessionUseCase()
             _uiState.value = LoginUiState()
         }
     }

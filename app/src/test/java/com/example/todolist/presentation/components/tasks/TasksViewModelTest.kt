@@ -1,23 +1,23 @@
 package com.example.todolist.presentation.components.tasks
 
-import android.app.Application
-import com.example.todolist.data.local.UserPreferences
 import com.example.todolist.domain.model.Task
 import com.example.todolist.domain.model.TaskPriority
+import com.example.todolist.domain.repository.SessionRepository
 import com.example.todolist.domain.repository.TaskRepository
+import com.example.todolist.domain.service.ReminderScheduler
+import com.example.todolist.domain.usecase.reminder.CancelReminderUseCase
+import com.example.todolist.domain.usecase.reminder.ScheduleReminderUseCase
+import com.example.todolist.domain.usecase.session.ObserveUserIdUseCase
 import com.example.todolist.domain.usecase.tasks.CreatePostUseCase
 import com.example.todolist.domain.usecase.tasks.CreateTaskUseCase
 import com.example.todolist.domain.usecase.tasks.DeleteTaskUseCase
 import com.example.todolist.domain.usecase.tasks.GetTasksUseCase
 import com.example.todolist.domain.usecase.tasks.UpdateTaskDetailsUseCase
 import com.example.todolist.domain.usecase.tasks.UpdateTaskStatusUseCase
-import com.example.todolist.utils.NotificationScheduler
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
-import io.mockk.mockkObject
-import io.mockk.unmockkObject
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.flowOf
@@ -37,20 +37,17 @@ class TasksViewModelTest {
 
     private val testDispatcher = StandardTestDispatcher()
     private val mockRepository = mockk<TaskRepository>(relaxed = true)
-    private val mockUserPreferences = mockk<UserPreferences>(relaxed = true)
+    private val mockSessionRepository = mockk<SessionRepository>(relaxed = true)
+    private val reminderScheduler = mockk<ReminderScheduler>(relaxed = true)
     private lateinit var viewModel: TasksViewModel
 
     @Before
     fun setUp() {
         Dispatchers.setMain(testDispatcher)
 
-        mockkObject(NotificationScheduler)
-        every { NotificationScheduler.cancelReminder(any(), any()) } returns Unit
-        every { NotificationScheduler.scheduleReminder(any(), any(), any(), any()) } returns Unit
-
-        val mockApp = mockk<Application>(relaxed = true)
-
-        every { mockUserPreferences.userId } returns flowOf("test_user")
+        every { mockSessionRepository.userId } returns flowOf("test_user")
+        every { reminderScheduler.cancel(any()) } returns Unit
+        every { reminderScheduler.schedule(any(), any(), any()) } returns Unit
         coEvery { mockRepository.getTasks() } returns Result.success(emptyList())
 
         viewModel = TasksViewModel(
@@ -60,15 +57,15 @@ class TasksViewModelTest {
             updateTaskDetailsUseCase = UpdateTaskDetailsUseCase(mockRepository),
             deleteTaskUseCase = DeleteTaskUseCase(mockRepository),
             createPostUseCase = CreatePostUseCase(mockRepository),
-            userPreferences = mockUserPreferences,
-            application = mockApp
+            observeUserIdUseCase = ObserveUserIdUseCase(mockSessionRepository),
+            scheduleReminderUseCase = ScheduleReminderUseCase(reminderScheduler),
+            cancelReminderUseCase = CancelReminderUseCase(reminderScheduler)
         )
     }
 
     @After
     fun tearDown() {
         Dispatchers.resetMain()
-        unmockkObject(NotificationScheduler)
     }
 
     @Test
@@ -116,6 +113,7 @@ class TasksViewModelTest {
         testDispatcher.scheduler.advanceUntilIdle()
 
         coVerify { mockRepository.deleteTask("task456") }
+        every { reminderScheduler.cancel("task456") } returns Unit
     }
 
     @Test
