@@ -186,23 +186,34 @@ class TasksViewModelTest {
     }
 
     @Test
-    fun `tasks are sorted by isDone and priority`() = runTest {
+    fun `visibleTasks filters active tasks`() = runTest {
         val mockTasks = listOf(
-            Task("1", "test_user", "Задача 1", true, TaskPriority.HIGH.value, null, null),
-            Task("2", "test_user", "Задача 2", false, TaskPriority.LOW.value, null, null),
-            Task("3", "test_user", "Задача 3", false, TaskPriority.HIGH.value, null, null),
-            Task("4", "test_user", "Задача 4", true, TaskPriority.LOW.value, null, null)
+            Task("1", "test_user", "Активная", false, TaskPriority.MEDIUM.value, null, null),
+            Task("2", "test_user", "Выполненная", true, TaskPriority.HIGH.value, null, null)
         )
         coEvery { mockRepository.getTasks() } returns Result.success(mockTasks)
 
         viewModel.loadTasks()
+        viewModel.updateFilter(TaskFilter.ACTIVE)
         testDispatcher.scheduler.advanceUntilIdle()
 
-        val state = viewModel.uiState.value
-        assertEquals("Задача 3", state.tasks[0].title)
-        assertEquals("Задача 2", state.tasks[1].title)
-        assertEquals("Задача 1", state.tasks[2].title)
-        assertEquals("Задача 4", state.tasks[3].title)
+        assertEquals(1, viewModel.visibleTasks.value.size)
+        assertEquals("Активная", viewModel.visibleTasks.value.first().title)
+    }
+
+    @Test
+    fun `visibleTasks sorts by deadline when selected`() = runTest {
+        val mockTasks = listOf(
+            Task("1", "test_user", "Позже", false, TaskPriority.MEDIUM.value, "2026-06-12T10:00:00", null),
+            Task("2", "test_user", "Раньше", false, TaskPriority.LOW.value, "2026-06-10T10:00:00", null)
+        )
+        coEvery { mockRepository.getTasks() } returns Result.success(mockTasks)
+
+        viewModel.loadTasks()
+        viewModel.updateSort(TaskSortOption.DEADLINE)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals("Раньше", viewModel.visibleTasks.value.first().title)
     }
 
     @Test

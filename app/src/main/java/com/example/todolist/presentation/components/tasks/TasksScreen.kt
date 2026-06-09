@@ -24,6 +24,7 @@ import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.AssistChip
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -31,7 +32,10 @@ import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DismissDirection
 import androidx.compose.material3.DismissValue
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -78,8 +82,12 @@ fun TasksScreen(
     val viewModel: TasksViewModel = hiltViewModel()
     val uiState by viewModel.uiState.collectAsState()
     val searchQuery by viewModel.searchQuery.collectAsState()
+    val selectedFilter by viewModel.selectedFilter.collectAsState()
+    val selectedSort by viewModel.selectedSort.collectAsState()
+    val visibleTasks by viewModel.visibleTasks.collectAsState()
     val totalCount by viewModel.completedTasksCount.collectAsState()
     var showClearDialog by remember { mutableStateOf(false) }
+    var showSortMenu by remember { mutableStateOf(false) }
     val displayName = remember(userName) {
         userName?.trim()?.takeIf { it.isNotEmpty() && !it.contains("@") }
     }
@@ -175,6 +183,47 @@ fun TasksScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                TaskFilter.entries.forEach { filter ->
+                    FilterChip(
+                        selected = selectedFilter == filter,
+                        onClick = { viewModel.updateFilter(filter) },
+                        label = { Text(filter.toLabel()) }
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Box {
+                AssistChip(
+                    onClick = { showSortMenu = true },
+                    label = {
+                        Text(stringResource(R.string.tasks_sort_label, selectedSort.toLabel()))
+                    }
+                )
+                DropdownMenu(
+                    expanded = showSortMenu,
+                    onDismissRequest = { showSortMenu = false }
+                ) {
+                    TaskSortOption.entries.forEach { sort ->
+                        DropdownMenuItem(
+                            text = { Text(sort.toLabel()) },
+                            onClick = {
+                                viewModel.updateSort(sort)
+                                showSortMenu = false
+                            }
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
             uiState.error?.let { error ->
                 Card(
                     modifier = Modifier.fillMaxWidth(),
@@ -203,136 +252,130 @@ fun TasksScreen(
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     CircularProgressIndicator()
                 }
-            } else {
-                val filteredTasks = uiState.tasks.filter { task ->
-                    task.title.contains(searchQuery, ignoreCase = true)
-                }
-
-                if (filteredTasks.isEmpty()) {
-                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
-                            Text(
-                                text = if (searchQuery.isEmpty()) {
-                                    stringResource(R.string.tasks_empty)
-                                } else {
-                                    stringResource(R.string.tasks_search_empty, searchQuery)
-                                },
-                                style = MaterialTheme.typography.bodyLarge,
-                                color = Color.Gray
-                            )
-                            if (searchQuery.isEmpty()) {
-                                TextButton(onClick = { viewModel.showAddDialog() }) {
-                                    Text(stringResource(R.string.tasks_create_first))
-                                }
+            } else if (visibleTasks.isEmpty()) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Text(
+                            text = if (searchQuery.isEmpty()) {
+                                stringResource(R.string.tasks_empty)
                             } else {
-                                TextButton(onClick = { viewModel.clearSearch() }) {
-                                    Text(stringResource(R.string.tasks_clear_search))
+                                stringResource(R.string.tasks_search_empty, searchQuery)
+                            },
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = Color.Gray
+                        )
+                        if (searchQuery.isEmpty()) {
+                            TextButton(onClick = { viewModel.showAddDialog() }) {
+                                Text(stringResource(R.string.tasks_create_first))
+                            }
+                        } else {
+                            TextButton(onClick = { viewModel.clearSearch() }) {
+                                Text(stringResource(R.string.tasks_clear_search))
+                            }
+                        }
+                    }
+                }
+            } else {
+                LazyColumn(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    item {
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.primaryContainer
+                            ),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(16.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column {
+                                    Icon(
+                                        painter = painterResource(id = R.drawable.check),
+                                        contentDescription = stringResource(R.string.tasks_progress),
+                                        modifier = Modifier.size(24.dp),
+                                        tint = MaterialTheme.colorScheme.onPrimaryContainer
+                                    )
+                                    Text(
+                                        text = stringResource(R.string.tasks_progress),
+                                        style = MaterialTheme.typography.titleLarge,
+                                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                    Text(
+                                        text = stringResource(R.string.tasks_completed_count, totalCount),
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f),
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+                                TextButton(
+                                    onClick = { showClearDialog = true },
+                                    colors = ButtonDefaults.textButtonColors(
+                                        contentColor = MaterialTheme.colorScheme.error
+                                    )
+                                ) {
+                                    Text(
+                                        stringResource(R.string.tasks_clear_all),
+                                        fontWeight = FontWeight.Medium
+                                    )
                                 }
                             }
                         }
                     }
-                } else {
-                    LazyColumn(
-                        modifier = Modifier.weight(1f),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        item {
-                            Card(
-                                modifier = Modifier.fillMaxWidth(),
-                                colors = CardDefaults.cardColors(
-                                    containerColor = MaterialTheme.colorScheme.primaryContainer
-                                ),
-                                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
-                            ) {
-                                Row(
-                                    modifier = Modifier.padding(16.dp),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Column {
-                                        Icon(
-                                            painter = painterResource(id = R.drawable.check),
-                                            contentDescription = stringResource(R.string.tasks_progress),
-                                            modifier = Modifier.size(24.dp),
-                                            tint = MaterialTheme.colorScheme.onPrimaryContainer
-                                        )
-                                        Text(
-                                            text = stringResource(R.string.tasks_progress),
-                                            style = MaterialTheme.typography.titleLarge,
-                                            color = MaterialTheme.colorScheme.onPrimaryContainer,
-                                            fontWeight = FontWeight.Bold
-                                        )
-                                        Text(
-                                            text = stringResource(R.string.tasks_completed_count, totalCount),
-                                            style = MaterialTheme.typography.bodyMedium,
-                                            color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f),
-                                            fontWeight = FontWeight.Bold
-                                        )
-                                    }
-                                    TextButton(
-                                        onClick = { showClearDialog = true },
-                                        colors = ButtonDefaults.textButtonColors(
-                                            contentColor = MaterialTheme.colorScheme.error
-                                        )
-                                    ) {
-                                        Text(
-                                            stringResource(R.string.tasks_clear_all),
-                                            fontWeight = FontWeight.Medium
-                                        )
-                                    }
+
+                    items(visibleTasks, key = { it.id }) { task ->
+                        val dismissState = rememberDismissState(
+                            confirmValueChange = { dismissValue ->
+                                if (dismissValue == DismissValue.DismissedToStart) {
+                                    viewModel.deleteTask(task.id)
+                                    true
+                                } else {
+                                    false
                                 }
                             }
-                        }
+                        )
 
-                        items(filteredTasks, key = { it.id }) { task ->
-                            val dismissState = rememberDismissState(
-                                confirmValueChange = { dismissValue ->
-                                    if (dismissValue == DismissValue.DismissedToStart) {
-                                        viewModel.deleteTask(task.id)
-                                        true
-                                    } else {
-                                        false
-                                    }
+                        SwipeToDismiss(
+                            state = dismissState,
+                            background = {
+                                val color by animateColorAsState(
+                                    targetValue = when (dismissState.targetValue) {
+                                        DismissValue.Default -> Color.Transparent
+                                        else -> Color.Red
+                                    },
+                                    label = "background color"
+                                )
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .background(color)
+                                        .padding(horizontal = 20.dp),
+                                    contentAlignment = Alignment.CenterEnd
+                                ) {
+                                    Icon(
+                                        Icons.Default.Delete,
+                                        contentDescription = stringResource(R.string.tasks_delete),
+                                        tint = Color.White
+                                    )
                                 }
-                            )
-
-                            SwipeToDismiss(
-                                state = dismissState,
-                                background = {
-                                    val color by animateColorAsState(
-                                        targetValue = when (dismissState.targetValue) {
-                                            DismissValue.Default -> Color.Transparent
-                                            else -> Color.Red
-                                        },
-                                        label = "background color"
-                                    )
-                                    Box(
-                                        modifier = Modifier
-                                            .fillMaxSize()
-                                            .background(color)
-                                            .padding(horizontal = 20.dp),
-                                        contentAlignment = Alignment.CenterEnd
-                                    ) {
-                                        Icon(
-                                            Icons.Default.Delete,
-                                            contentDescription = stringResource(R.string.tasks_delete),
-                                            tint = Color.White
-                                        )
-                                    }
-                                },
-                                dismissContent = {
-                                    TaskItem(
-                                        task = task,
-                                        onToggle = { viewModel.toggleTask(task.id, !task.isDone) },
-                                        onEdit = { viewModel.showEditDialog(task) }
-                                    )
-                                },
-                                directions = setOf(DismissDirection.EndToStart)
-                            )
-                        }
+                            },
+                            dismissContent = {
+                                TaskItem(
+                                    task = task,
+                                    onToggle = { viewModel.toggleTask(task.id, !task.isDone) },
+                                    onEdit = { viewModel.showEditDialog(task) }
+                                )
+                            },
+                            directions = setOf(DismissDirection.EndToStart)
+                        )
                     }
                 }
             }
@@ -385,6 +428,19 @@ fun TasksScreen(
             )
         }
     }
+}
+
+private fun TaskFilter.toLabel(): String = when (this) {
+    TaskFilter.ALL -> "Все"
+    TaskFilter.ACTIVE -> "Активные"
+    TaskFilter.COMPLETED -> "Выполненные"
+    TaskFilter.OVERDUE -> "Просроченные"
+}
+
+private fun TaskSortOption.toLabel(): String = when (this) {
+    TaskSortOption.PRIORITY -> "Приоритет"
+    TaskSortOption.DEADLINE -> "Дедлайн"
+    TaskSortOption.CREATED_AT -> "Дата создания"
 }
 
 @Composable

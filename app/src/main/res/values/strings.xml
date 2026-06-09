@@ -24,6 +24,7 @@
     <string name="tasks_clear_search">Очистить</string>
     <string name="tasks_close_error">Закрыть</string>
     <string name="tasks_retry">Повторить</string>
+    <string name="tasks_sort_label">Сортировка: %1$s</string>
     <string name="tasks_empty">Нет задач. Добавь первую!</string>
     <string name="tasks_search_empty">Ничего не найдено по запросу \"%1$s\"</string>
     <string name="tasks_create_first">Создать первую задачу</string>

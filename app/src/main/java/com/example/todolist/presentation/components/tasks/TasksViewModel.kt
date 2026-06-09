@@ -15,14 +15,16 @@ import com.example.todolist.domain.usecase.tasks.GetTasksUseCase
 import com.example.todolist.domain.usecase.tasks.UpdateTaskDetailsUseCase
 import com.example.todolist.domain.usecase.tasks.UpdateTaskStatusUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
+import java.time.LocalDateTime
+import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import javax.inject.Inject
 
 data class TasksUiState(
     val tasks: List<Task> = emptyList(),
@@ -54,6 +56,24 @@ class TasksViewModel @Inject constructor(
 
     private val _searchQuery = MutableStateFlow("")
     val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
+
+    private val _selectedFilter = MutableStateFlow(TaskFilter.ALL)
+    val selectedFilter: StateFlow<TaskFilter> = _selectedFilter.asStateFlow()
+
+    private val _selectedSort = MutableStateFlow(TaskSortOption.PRIORITY)
+    val selectedSort: StateFlow<TaskSortOption> = _selectedSort.asStateFlow()
+
+    val visibleTasks: StateFlow<List<Task>> = combine(
+        uiState,
+        searchQuery,
+        selectedFilter,
+        selectedSort
+    ) { state, query, filter, sort ->
+        state.tasks
+            .filterByQuery(query)
+            .filterByType(filter)
+            .sortByOption(sort)
+    }.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
     val completedTasksCount: StateFlow<Int> = uiState.map { state ->
         state.tasks.count { it.isDone }
@@ -90,9 +110,7 @@ class TasksViewModel @Inject constructor(
             getTasksUseCase()
                 .onSuccess { tasks ->
                     _uiState.value = _uiState.value.copy(
-                        tasks = tasks.sortedWith(
-                            compareBy<Task> { it.isDone }.thenByDescending { it.priority }
-                        ),
+                        tasks = tasks,
                         isLoading = false
                     )
                 }
@@ -165,6 +183,14 @@ class TasksViewModel @Inject constructor(
         _searchQuery.value = ""
     }
 
+    fun updateFilter(filter: TaskFilter) {
+        _selectedFilter.value = filter
+    }
+
+    fun updateSort(sort: TaskSortOption) {
+        _selectedSort.value = sort
+    }
+
     fun showAddDialog() {
         _uiState.value = _uiState.value.copy(
             dialogTask = Task(
@@ -212,5 +238,48 @@ class TasksViewModel @Inject constructor(
             isLoading = isLoading,
             sessionExpired = error is SessionExpiredException
         )
+    }
+
+    private fun List<Task>.filterByQuery(query: String): List<Task> {
+        if (query.isBlank()) return this
+        return filter { task ->
+            task.title.contains(query, ignoreCase = true)
+        }
+    }
+
+    private fun List<Task>.filterByType(filter: TaskFilter): List<Task> {
+        return when (filter) {
+            TaskFilter.ALL -> this
+            TaskFilter.ACTIVE -> filter { !it.isDone }
+            TaskFilter.COMPLETED -> filter { it.isDone }
+            TaskFilter.OVERDUE -> filter { task ->
+                !task.isDone && task.dueDate?.let(::parseDateTime)?.isBefore(LocalDateTime.now()) == true
+            }
+        }
+    }
+
+    private fun List<Task>.sortByOption(sort: TaskSortOption): List<Task> {
+        return when (sort) {
+            TaskSortOption.PRIORITY -> sortedWith(
+                compareBy<Task> { it.isDone }
+                    .thenByDescending { it.priority }
+                    .thenByDescending { parseDateTime(it.createdAt) }
+            )
+            TaskSortOption.DEADLINE -> sortedWith(
+                compareBy<Task> { it.isDone }
+                    .thenBy { parseDateTime(it.dueDate) ?: LocalDateTime.MAX }
+                    .thenByDescending { it.priority }
+            )
+            TaskSortOption.CREATED_AT -> sortedWith(
+                compareBy<Task> { it.isDone }
+                    .thenByDescending { parseDateTime(it.createdAt) }
+            )
+        }
+    }
+
+    private fun parseDateTime(value: String?): LocalDateTime? {
+        return runCatching {
+            value?.let(LocalDateTime::parse)
+        }.getOrNull()
     }
 }
