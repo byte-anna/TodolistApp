@@ -20,6 +20,7 @@ import com.example.todolist.R
 import com.example.todolist.data.local.UserPreferences
 import com.example.todolist.presentation.auth.LoginScreen
 import com.example.todolist.presentation.auth.LoginViewModel
+import com.example.todolist.presentation.components.calendar.CalendarScreen
 import com.example.todolist.presentation.components.feed.FeedScreen
 import com.example.todolist.presentation.components.stats.StatsScreen
 import com.example.todolist.presentation.components.tasks.TasksScreen
@@ -86,6 +87,7 @@ fun AppNavigation() {
             TasksScreen(
                 userName = userName,
                 onOpenFeed = { navController.navigate(AppRoute.Feed.route) },
+                onOpenCalendar = { navController.navigate(AppRoute.Calendar.route) },
                 onOpenStats = { navController.navigate(AppRoute.Stats.route) },
                 onLogout = {
                     scope.launch {
@@ -97,6 +99,15 @@ fun AppNavigation() {
                 },
                 onSessionExpired = {
                     navigateToLogin(AppRoute.Tasks.route)
+                }
+            )
+        }
+
+        composable(AppRoute.Calendar.route) {
+            CalendarScreen(
+                onBackClick = { navController.popBackStack() },
+                onSessionExpired = {
+                    navigateToLogin(AppRoute.Calendar.route)
                 }
             )
         }

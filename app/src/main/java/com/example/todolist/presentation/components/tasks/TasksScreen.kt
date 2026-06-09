@@ -19,6 +19,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Notifications
@@ -78,6 +79,7 @@ import java.time.format.DateTimeFormatter
 fun TasksScreen(
     userName: String? = null,
     onOpenFeed: () -> Unit,
+    onOpenCalendar: () -> Unit,
     onOpenStats: () -> Unit,
     onLogout: () -> Unit,
     onSessionExpired: () -> Unit
@@ -129,6 +131,13 @@ fun TasksScreen(
                     }
                 },
                 actions = {
+                    IconButton(onClick = onOpenCalendar) {
+                        Icon(
+                            imageVector = Icons.Default.DateRange,
+                            contentDescription = "Календарный режим",
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    }
                     IconButton(onClick = onOpenStats) {
                         Icon(
                             imageVector = Icons.Default.Star,
