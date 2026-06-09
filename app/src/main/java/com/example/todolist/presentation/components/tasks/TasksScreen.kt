@@ -22,7 +22,6 @@ import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.AlertDialog
@@ -108,26 +107,19 @@ fun TasksScreen(
         topBar = {
             TopAppBar(
                 title = {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Star,
-                            contentDescription = stringResource(R.string.tasks_progress),
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(24.dp)
-                        )
-                        Column {
-                            displayName?.let { name ->
-                                Text(
-                                    text = stringResource(R.string.tasks_greeting, name),
-                                    style = MaterialTheme.typography.labelMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                            Text(stringResource(R.string.tasks_title))
+                    Column {
+                        displayName?.let { name ->
+                            Text(
+                                text = stringResource(R.string.tasks_greeting, name),
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
                         }
+                        Text(
+                            text = stringResource(R.string.tasks_title),
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.SemiBold
+                        )
                     }
                 },
                 actions = {
@@ -140,14 +132,14 @@ fun TasksScreen(
                     }
                     IconButton(onClick = onOpenStats) {
                         Icon(
-                            imageVector = Icons.Default.Star,
+                            painter = painterResource(id = R.drawable.progress),
                             contentDescription = stringResource(R.string.stats_title),
-                            tint = MaterialTheme.colorScheme.primary
+                            tint = Color(0xFF7E57C2)
                         )
                     }
                     IconButton(onClick = onOpenFeed) {
                         Icon(
-                            imageVector = Icons.Default.Notifications,
+                            imageVector = Icons.Default.Star,
                             contentDescription = stringResource(R.string.tasks_open_feed),
                             tint = MaterialTheme.colorScheme.primary
                         )
