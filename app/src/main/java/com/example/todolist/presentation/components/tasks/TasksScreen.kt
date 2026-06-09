@@ -27,6 +27,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DismissDirection
 import androidx.compose.material3.DismissValue
@@ -55,6 +56,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
@@ -62,6 +64,8 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.todolist.R
 import com.example.todolist.domain.model.Task
 import com.example.todolist.domain.model.TaskPriority
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -77,9 +81,7 @@ fun TasksScreen(
     val totalCount by viewModel.completedTasksCount.collectAsState()
     var showClearDialog by remember { mutableStateOf(false) }
     val displayName = remember(userName) {
-        userName
-            ?.trim()
-            ?.takeIf { it.isNotEmpty() && !it.contains("@") }
+        userName?.trim()?.takeIf { it.isNotEmpty() && !it.contains("@") }
     }
 
     LaunchedEffect(uiState.sessionExpired) {
@@ -98,19 +100,19 @@ fun TasksScreen(
                     ) {
                         Icon(
                             imageVector = Icons.Default.Star,
-                            contentDescription = "Прогресс",
+                            contentDescription = stringResource(R.string.tasks_progress),
                             tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(24.dp)
                         )
                         Column {
                             displayName?.let { name ->
                                 Text(
-                                    text = "Привет, $name!",
+                                    text = stringResource(R.string.tasks_greeting, name),
                                     style = MaterialTheme.typography.labelMedium,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
-                            Text("Мои задачи")
+                            Text(stringResource(R.string.tasks_title))
                         }
                     }
                 },
@@ -118,19 +120,22 @@ fun TasksScreen(
                     IconButton(onClick = onOpenFeed) {
                         Icon(
                             imageVector = Icons.Default.Notifications,
-                            contentDescription = "Лента достижений",
+                            contentDescription = stringResource(R.string.tasks_open_feed),
                             tint = MaterialTheme.colorScheme.primary
                         )
                     }
                     TextButton(onClick = onLogout) {
-                        Text("Выйти")
+                        Text(stringResource(R.string.tasks_logout))
                     }
                 }
             )
         },
         floatingActionButton = {
             FloatingActionButton(onClick = { viewModel.showAddDialog() }) {
-                Icon(Icons.Default.Add, "Добавить задачу")
+                Icon(
+                    Icons.Default.Add,
+                    contentDescription = stringResource(R.string.tasks_add)
+                )
             }
         }
     ) { paddingValues ->
@@ -144,12 +149,20 @@ fun TasksScreen(
                 value = searchQuery,
                 onValueChange = viewModel::updateSearchQuery,
                 modifier = Modifier.fillMaxWidth(),
-                label = { Text("Поиск задачи...") },
-                leadingIcon = { Icon(Icons.Default.Search, contentDescription = "Поиск") },
+                label = { Text(stringResource(R.string.tasks_search_label)) },
+                leadingIcon = {
+                    Icon(
+                        Icons.Default.Search,
+                        contentDescription = stringResource(R.string.tasks_search_icon)
+                    )
+                },
                 trailingIcon = {
                     if (searchQuery.isNotEmpty()) {
                         IconButton(onClick = { viewModel.clearSearch() }) {
-                            Icon(Icons.Default.Clear, contentDescription = "Очистить")
+                            Icon(
+                                Icons.Default.Clear,
+                                contentDescription = stringResource(R.string.tasks_clear_search)
+                            )
                         }
                     }
                 },
@@ -174,7 +187,7 @@ fun TasksScreen(
                     ) {
                         Text(text = error, color = Color.Red)
                         TextButton(onClick = { viewModel.clearError() }) {
-                            Text("Закрыть")
+                            Text(stringResource(R.string.tasks_close_error))
                         }
                     }
                 }
@@ -194,9 +207,9 @@ fun TasksScreen(
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         Text(
                             text = if (searchQuery.isEmpty()) {
-                                "Нет задач. Добавь первую!"
+                                stringResource(R.string.tasks_empty)
                             } else {
-                                "Ничего не найдено по запросу \"$searchQuery\""
+                                stringResource(R.string.tasks_search_empty, searchQuery)
                             },
                             style = MaterialTheme.typography.bodyLarge,
                             color = Color.Gray
@@ -223,18 +236,18 @@ fun TasksScreen(
                                     Column {
                                         Icon(
                                             painter = painterResource(id = R.drawable.check),
-                                            contentDescription = "Прогресс",
+                                            contentDescription = stringResource(R.string.tasks_progress),
                                             modifier = Modifier.size(24.dp),
                                             tint = MaterialTheme.colorScheme.onPrimaryContainer
                                         )
                                         Text(
-                                            text = "Прогресс",
+                                            text = stringResource(R.string.tasks_progress),
                                             style = MaterialTheme.typography.titleLarge,
                                             color = MaterialTheme.colorScheme.onPrimaryContainer,
                                             fontWeight = FontWeight.Bold
                                         )
                                         Text(
-                                            text = "Выполнено задач: $totalCount",
+                                            text = stringResource(R.string.tasks_completed_count, totalCount),
                                             style = MaterialTheme.typography.bodyMedium,
                                             color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f),
                                             fontWeight = FontWeight.Bold
@@ -246,7 +259,10 @@ fun TasksScreen(
                                             contentColor = MaterialTheme.colorScheme.error
                                         )
                                     ) {
-                                        Text("Очистить всё", fontWeight = FontWeight.Medium)
+                                        Text(
+                                            stringResource(R.string.tasks_clear_all),
+                                            fontWeight = FontWeight.Medium
+                                        )
                                     }
                                 }
                             }
@@ -283,7 +299,7 @@ fun TasksScreen(
                                     ) {
                                         Icon(
                                             Icons.Default.Delete,
-                                            contentDescription = "Удалить",
+                                            contentDescription = stringResource(R.string.tasks_delete),
                                             tint = Color.White
                                         )
                                     }
@@ -303,10 +319,8 @@ fun TasksScreen(
             }
         }
 
-        if (uiState.dialogTask != null) {
-            val task = uiState.dialogTask!!
+        uiState.dialogTask?.let { task ->
             val isEdit = task.id.isNotEmpty()
-
             AddTaskDialog(
                 initialTitle = task.title,
                 initialPriority = task.priority,
@@ -326,10 +340,8 @@ fun TasksScreen(
         if (showClearDialog) {
             AlertDialog(
                 onDismissRequest = { showClearDialog = false },
-                title = { Text("Удалить все задачи?") },
-                text = {
-                    Text("Это действие нельзя отменить. Все задачи будут удалены безвозвратно.")
-                },
+                title = { Text(stringResource(R.string.tasks_delete_all_title)) },
+                text = { Text(stringResource(R.string.tasks_delete_all_message)) },
                 confirmButton = {
                     TextButton(
                         onClick = {
@@ -340,12 +352,15 @@ fun TasksScreen(
                             contentColor = MaterialTheme.colorScheme.error
                         )
                     ) {
-                        Text("Удалить", fontWeight = FontWeight.Bold)
+                        Text(
+                            stringResource(R.string.tasks_delete),
+                            fontWeight = FontWeight.Bold
+                        )
                     }
                 },
                 dismissButton = {
                     TextButton(onClick = { showClearDialog = false }) {
-                        Text("Отмена")
+                        Text(stringResource(R.string.common_cancel))
                     }
                 }
             )
@@ -367,8 +382,8 @@ fun TaskItem(
 
     val dueDateText = task.dueDate?.let { dateStr ->
         try {
-            val localDateTime = java.time.LocalDateTime.parse(dateStr)
-            val formatter = java.time.format.DateTimeFormatter.ofPattern("dd.MM HH:mm")
+            val localDateTime = LocalDateTime.parse(dateStr)
+            val formatter = DateTimeFormatter.ofPattern("dd.MM HH:mm")
             "⏰ ${localDateTime.format(formatter)}"
         } catch (_: Exception) {
             "⏰ $dateStr"
@@ -377,8 +392,8 @@ fun TaskItem(
 
     val dueDateColor = if (task.dueDate != null) {
         try {
-            val deadline = java.time.LocalDateTime.parse(task.dueDate)
-            val now = java.time.LocalDateTime.now()
+            val deadline = LocalDateTime.parse(task.dueDate)
+            val now = LocalDateTime.now()
             if (!task.isDone && deadline.isBefore(now)) Color.Red else Color.Gray
         } catch (_: Exception) {
             Color.Gray
@@ -406,7 +421,7 @@ fun TaskItem(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                androidx.compose.material3.Checkbox(
+                Checkbox(
                     checked = task.isDone,
                     onCheckedChange = { onToggle() },
                     modifier = Modifier.testTag("task_checkbox_${task.id}")
@@ -427,7 +442,7 @@ fun TaskItem(
                 ) {
                     Icon(
                         Icons.Default.Edit,
-                        contentDescription = "Редактировать",
+                        contentDescription = stringResource(R.string.tasks_edit),
                         tint = Color.Gray
                     )
                 }

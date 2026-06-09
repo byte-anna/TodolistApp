@@ -1,3 +1,53 @@
 <resources>
     <string name="app_name">Todolist</string>
+
+    <string name="session_expired_message">Сессия истекла, войдите снова</string>
+
+    <string name="login_title">Вход</string>
+    <string name="register_title">Регистрация</string>
+    <string name="login_email_label">Логин</string>
+    <string name="login_display_name_label">Ваше имя (необязательно)</string>
+    <string name="login_password_label">Пароль</string>
+    <string name="login_submit">Войти</string>
+    <string name="register_submit">Зарегистрироваться</string>
+    <string name="login_switch_to_register">Нет аккаунта? Зарегистрироваться</string>
+    <string name="login_switch_to_login">Уже есть аккаунт? Войти</string>
+
+    <string name="tasks_greeting">Привет, %1$s!</string>
+    <string name="tasks_title">Мои задачи</string>
+    <string name="tasks_progress">Прогресс</string>
+    <string name="tasks_open_feed">Лента достижений</string>
+    <string name="tasks_logout">Выйти</string>
+    <string name="tasks_add">Добавить задачу</string>
+    <string name="tasks_search_label">Поиск задачи...</string>
+    <string name="tasks_search_icon">Поиск</string>
+    <string name="tasks_clear_search">Очистить</string>
+    <string name="tasks_close_error">Закрыть</string>
+    <string name="tasks_empty">Нет задач. Добавь первую!</string>
+    <string name="tasks_search_empty">Ничего не найдено по запросу \"%1$s\"</string>
+    <string name="tasks_completed_count">Выполнено задач: %1$d</string>
+    <string name="tasks_clear_all">Очистить всё</string>
+    <string name="tasks_delete">Удалить</string>
+    <string name="tasks_edit">Редактировать</string>
+    <string name="tasks_delete_all_title">Удалить все задачи?</string>
+    <string name="tasks_delete_all_message">Это действие нельзя отменить. Все задачи будут удалены безвозвратно.</string>
+    <string name="common_cancel">Отмена</string>
+
+    <string name="dialog_task_new">Новая задача</string>
+    <string name="dialog_task_edit">Редактировать задачу</string>
+    <string name="dialog_task_name">Название</string>
+    <string name="dialog_task_deadline">Дедлайн:</string>
+    <string name="dialog_task_deadline_pick">Выбрать дату и время</string>
+    <string name="dialog_task_priority">Приоритет:</string>
+    <string name="dialog_task_publish">Опубликовать как достижение</string>
+    <string name="dialog_task_save">Сохранить</string>
+    <string name="dialog_task_add">Добавить</string>
+    <string name="dialog_task_pick_datetime">Выберите дату и время</string>
+    <string name="dialog_task_clear">Очистить</string>
+
+    <string name="feed_title">Лента достижений</string>
+    <string name="feed_back">Назад</string>
+    <string name="feed_retry">Повторить</string>
+    <string name="feed_empty">Пока нет достижений. Будь первым!</string>
+    <string name="feed_like">Нравится</string>
 </resources>

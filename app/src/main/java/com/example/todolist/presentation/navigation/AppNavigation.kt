@@ -11,10 +11,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.example.todolist.R
 import com.example.todolist.data.local.UserPreferences
 import com.example.todolist.presentation.auth.LoginScreen
 import com.example.todolist.presentation.auth.LoginViewModel
@@ -31,11 +33,12 @@ fun AppNavigation() {
     val authLoadingMarker = "__auth_loading__"
     val authToken by userPreferences.authToken.collectAsState(initial = authLoadingMarker)
     val userName by userPreferences.userName.collectAsState(initial = null)
+    val sessionExpiredMessage = stringResource(R.string.session_expired_message)
 
     fun navigateToLogin(clearRoute: String) {
         scope.launch {
             userPreferences.clearSession()
-            Toast.makeText(context, "Сессия истекла, войдите снова", Toast.LENGTH_LONG).show()
+            Toast.makeText(context, sessionExpiredMessage, Toast.LENGTH_LONG).show()
             navController.navigate(AppRoute.Login.route) {
                 popUpTo(clearRoute) { inclusive = true }
             }
@@ -55,6 +58,7 @@ fun AppNavigation() {
                             popUpTo(AppRoute.CheckAuth.route) { inclusive = true }
                         }
                     }
+
                     else -> {
                         navController.navigate(AppRoute.Tasks.route) {
                             popUpTo(AppRoute.CheckAuth.route) { inclusive = true }
@@ -69,7 +73,7 @@ fun AppNavigation() {
             val loginViewModel: LoginViewModel = hiltViewModel()
             LoginScreen(
                 viewModel = loginViewModel,
-                onLoginSuccess = { _ ->
+                onLoginSuccess = {
                     navController.navigate(AppRoute.Tasks.route) {
                         popUpTo(AppRoute.Login.route) { inclusive = true }
                     }
