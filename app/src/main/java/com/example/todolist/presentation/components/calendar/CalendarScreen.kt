@@ -146,7 +146,7 @@ fun CalendarScreen(
                             TaskItem(
                                 task = task,
                                 onToggle = { viewModel.toggleTask(task.id, !task.isDone) },
-                                onEdit = {}
+                                onEdit = null
                             )
                         }
                     }

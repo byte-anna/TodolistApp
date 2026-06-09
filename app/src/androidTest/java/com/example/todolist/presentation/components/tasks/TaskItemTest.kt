@@ -2,7 +2,9 @@ package com.example.todolist.presentation.components.tasks
 
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -97,6 +99,21 @@ class TaskItemTest {
         }
 
         composeRule.onNodeWithText("Учеба").assertIsDisplayed()
+    }
+
+    @Test
+    fun taskItemHidesEditButtonWhenEditActionIsMissing() {
+        composeRule.setContent {
+            MaterialTheme {
+                TaskItem(
+                    task = task(id = "task-5", title = "Только просмотр"),
+                    onToggle = {},
+                    onEdit = null
+                )
+            }
+        }
+
+        composeRule.onAllNodesWithTag("task_edit_task-5").assertCountEquals(0)
     }
 
     private fun task(

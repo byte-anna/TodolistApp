@@ -476,7 +476,7 @@ private fun TaskSortOption.toLabel(): String = when (this) {
 fun TaskItem(
     task: Task,
     onToggle: () -> Unit,
-    onEdit: () -> Unit
+    onEdit: (() -> Unit)? = null
 ) {
     val priorityColor = when (TaskPriority.fromValue(task.priority)) {
         TaskPriority.HIGH -> Color.Red
@@ -538,15 +538,17 @@ fun TaskItem(
                         .weight(1f)
                         .padding(horizontal = 8.dp)
                 )
-                IconButton(
-                    onClick = onEdit,
-                    modifier = Modifier.testTag("task_edit_${task.id}")
-                ) {
-                    Icon(
-                        Icons.Default.Edit,
-                        contentDescription = stringResource(R.string.tasks_edit),
-                        tint = Color.Gray
-                    )
+                if (onEdit != null) {
+                    IconButton(
+                        onClick = onEdit,
+                        modifier = Modifier.testTag("task_edit_${task.id}")
+                    ) {
+                        Icon(
+                            Icons.Default.Edit,
+                            contentDescription = stringResource(R.string.tasks_edit),
+                            tint = Color.Gray
+                        )
+                    }
                 }
                 Box(
                     modifier = Modifier
