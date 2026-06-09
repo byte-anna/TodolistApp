@@ -67,6 +67,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.todolist.R
 import com.example.todolist.domain.model.Task
+import com.example.todolist.domain.model.TaskCategory
 import com.example.todolist.domain.model.TaskPriority
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
@@ -148,10 +149,7 @@ fun TasksScreen(
         },
         floatingActionButton = {
             FloatingActionButton(onClick = { viewModel.showAddDialog() }) {
-                Icon(
-                    Icons.Default.Add,
-                    contentDescription = stringResource(R.string.tasks_add)
-                )
+                Icon(Icons.Default.Add, contentDescription = stringResource(R.string.tasks_add))
             }
         }
     ) { paddingValues ->
@@ -210,9 +208,7 @@ fun TasksScreen(
             Box {
                 AssistChip(
                     onClick = { showSortMenu = true },
-                    label = {
-                        Text(stringResource(R.string.tasks_sort_label, selectedSort.toLabel()))
-                    }
+                    label = { Text(stringResource(R.string.tasks_sort_label, selectedSort.toLabel())) }
                 )
                 DropdownMenu(
                     expanded = showSortMenu,
@@ -395,12 +391,13 @@ fun TasksScreen(
                 initialTitle = task.title,
                 initialPriority = task.priority,
                 initialDueDate = task.dueDate,
+                initialCategory = task.category,
                 isEdit = isEdit,
-                onConfirm = { title, priority, dueDate, shareToFeed ->
+                onConfirm = { title, priority, dueDate, category, shareToFeed ->
                     if (isEdit) {
-                        viewModel.updateTask(title, priority, dueDate)
+                        viewModel.updateTask(title, priority, dueDate, category)
                     } else {
-                        viewModel.addTask(title, priority, dueDate, shareToFeed)
+                        viewModel.addTask(title, priority, dueDate, category, shareToFeed)
                     }
                 },
                 onDismiss = { viewModel.closeDialog() }
@@ -464,23 +461,21 @@ fun TaskItem(
     }
 
     val dueDateText = task.dueDate?.let { dateStr ->
-        try {
+        runCatching {
             val localDateTime = LocalDateTime.parse(dateStr)
             val formatter = DateTimeFormatter.ofPattern("dd.MM HH:mm")
             "⏰ ${localDateTime.format(formatter)}"
-        } catch (_: Exception) {
+        }.getOrElse {
             "⏰ $dateStr"
         }
     }
 
     val dueDateColor = if (task.dueDate != null) {
-        try {
+        runCatching {
             val deadline = LocalDateTime.parse(task.dueDate)
             val now = LocalDateTime.now()
             if (!task.isDone && deadline.isBefore(now)) Color.Red else Color.Gray
-        } catch (_: Exception) {
-            Color.Gray
-        }
+        }.getOrDefault(Color.Gray)
     } else {
         Color.Gray
     }
@@ -541,6 +536,15 @@ fun TaskItem(
                     text = text,
                     style = MaterialTheme.typography.labelSmall,
                     color = dueDateColor,
+                    modifier = Modifier.padding(start = 40.dp)
+                )
+            }
+            if (task.category != TaskCategory.NONE) {
+                Spacer(modifier = Modifier.height(6.dp))
+                Text(
+                    text = task.category.label,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.padding(start = 40.dp)
                 )
             }

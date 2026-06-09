@@ -4,6 +4,7 @@ import com.example.todolist.data.local.TaskEntity
 import com.example.todolist.data.mapper.toDomain
 import com.example.todolist.data.mapper.toEntity
 import com.example.todolist.domain.model.Task
+import com.example.todolist.domain.model.TaskCategory
 import com.example.todolist.domain.model.TaskPriority
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -11,6 +12,7 @@ import org.junit.Assert.assertNull
 import org.junit.Test
 
 class TaskMapperAndPriorityTest {
+
     @Test
     fun taskToEntity_mapsIdentityAndTitleFields() {
         val task = task(id = "task-1", userId = "user-1", title = "Купить продукты")
@@ -41,6 +43,15 @@ class TaskMapperAndPriorityTest {
     }
 
     @Test
+    fun taskToEntity_mapsCategoryName() {
+        val task = task(category = TaskCategory.WORK)
+
+        val entity = task.toEntity()
+
+        assertEquals(TaskCategory.WORK.name, entity.category)
+    }
+
+    @Test
     fun taskToEntity_mapsDueDateWhenPresent() {
         val task = task(dueDate = "2026-06-08T10:00:00")
 
@@ -60,7 +71,7 @@ class TaskMapperAndPriorityTest {
 
     @Test
     fun taskEntityToDomain_mapsIdentityAndTitleFields() {
-        val entity = entity(id = "task-2", userId = "user-2", title = "Сделать отчёт")
+        val entity = entity(id = "task-2", userId = "user-2", title = "Сделать отчет")
 
         val task = entity.toDomain()
 
@@ -70,12 +81,13 @@ class TaskMapperAndPriorityTest {
     }
 
     @Test
-    fun taskEntityToDomain_mapsStatusPriorityAndDates() {
+    fun taskEntityToDomain_mapsStatusPriorityDatesAndCategory() {
         val entity = entity(
             isDone = true,
             priority = TaskPriority.LOW.value,
             dueDate = "2026-06-09T15:00:00",
-            createdAt = "2026-06-07T11:30:00"
+            createdAt = "2026-06-07T11:30:00",
+            category = TaskCategory.STUDY.name
         )
 
         val task = entity.toDomain()
@@ -84,6 +96,7 @@ class TaskMapperAndPriorityTest {
         assertEquals(entity.priority, task.priority)
         assertEquals(entity.dueDate, task.dueDate)
         assertEquals(entity.createdAt, task.createdAt)
+        assertEquals(TaskCategory.STUDY, task.category)
     }
 
     @Test
@@ -121,7 +134,8 @@ class TaskMapperAndPriorityTest {
         priority: Int = TaskPriority.MEDIUM.value,
         dueDate: String? = null,
         createdAt: String? = "2026-06-07T09:00:00",
-        isShared: Boolean = false
+        isShared: Boolean = false,
+        category: TaskCategory = TaskCategory.NONE
     ) = Task(
         id = id,
         userId = userId,
@@ -130,7 +144,8 @@ class TaskMapperAndPriorityTest {
         priority = priority,
         dueDate = dueDate,
         createdAt = createdAt,
-        isShared = isShared
+        isShared = isShared,
+        category = category
     )
 
     private fun entity(
@@ -140,7 +155,8 @@ class TaskMapperAndPriorityTest {
         isDone: Boolean = false,
         priority: Int = TaskPriority.MEDIUM.value,
         dueDate: String? = null,
-        createdAt: String = "2026-06-07T09:00:00"
+        createdAt: String = "2026-06-07T09:00:00",
+        category: String = TaskCategory.NONE.name
     ) = TaskEntity(
         id = id,
         userId = userId,
@@ -148,6 +164,7 @@ class TaskMapperAndPriorityTest {
         isDone = isDone,
         priority = priority,
         dueDate = dueDate,
-        createdAt = createdAt
+        createdAt = createdAt,
+        category = category
     )
 }

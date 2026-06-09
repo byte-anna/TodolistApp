@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.todolist.data.api.SessionExpiredException
 import com.example.todolist.domain.model.Task
+import com.example.todolist.domain.model.TaskCategory
 import com.example.todolist.domain.model.TaskPriority
 import com.example.todolist.domain.usecase.reminder.CancelReminderUseCase
 import com.example.todolist.domain.usecase.reminder.ScheduleReminderUseCase
@@ -83,14 +84,20 @@ class TasksViewModel @Inject constructor(
         loadTasks()
     }
 
-    fun updateTask(title: String, priority: Int, dueDate: String? = null) {
+    fun updateTask(
+        title: String,
+        priority: Int,
+        dueDate: String? = null,
+        category: TaskCategory = TaskCategory.NONE
+    ) {
         val task = _uiState.value.dialogTask ?: return
         viewModelScope.launch {
             updateTaskDetailsUseCase(
                 taskId = task.id,
                 title = title,
                 priority = priority,
-                dueDate = dueDate
+                dueDate = dueDate,
+                category = category
             ).onSuccess {
                 loadTasks()
                 closeDialog()
@@ -124,10 +131,11 @@ class TasksViewModel @Inject constructor(
         title: String,
         priority: Int,
         dueDate: String? = null,
+        category: TaskCategory = TaskCategory.NONE,
         shareToFeed: Boolean = false
     ) {
         viewModelScope.launch {
-            createTaskUseCase(title, priority, dueDate)
+            createTaskUseCase(title, priority, dueDate, category)
                 .onSuccess { createdTask ->
                     loadTasks()
                     closeDialog()
@@ -200,7 +208,8 @@ class TasksViewModel @Inject constructor(
                 isDone = false,
                 priority = TaskPriority.MEDIUM.value,
                 dueDate = null,
-                createdAt = ""
+                createdAt = "",
+                category = TaskCategory.NONE
             )
         )
     }
@@ -243,7 +252,8 @@ class TasksViewModel @Inject constructor(
     private fun List<Task>.filterByQuery(query: String): List<Task> {
         if (query.isBlank()) return this
         return filter { task ->
-            task.title.contains(query, ignoreCase = true)
+            task.title.contains(query, ignoreCase = true) ||
+                task.category.label.contains(query, ignoreCase = true)
         }
     }
 

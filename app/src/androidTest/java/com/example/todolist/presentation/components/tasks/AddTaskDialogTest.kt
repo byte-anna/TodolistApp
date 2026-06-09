@@ -10,6 +10,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
+import com.example.todolist.domain.model.TaskCategory
 import com.example.todolist.domain.model.TaskPriority
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -21,9 +22,10 @@ class AddTaskDialogTest {
     val composeRule = createComposeRule()
 
     @Test
-    fun addTaskDialog_submitsSelectedPriorityAndTitle() {
+    fun addTaskDialogSubmitsSelectedPriorityTitleAndCategory() {
         var submittedTitle: String? = null
         var submittedPriority: Int? = null
+        var submittedCategory: TaskCategory? = null
 
         composeRule.setContent {
             MaterialTheme {
@@ -31,9 +33,10 @@ class AddTaskDialogTest {
                     initialTitle = "",
                     initialPriority = TaskPriority.MEDIUM.value,
                     isEdit = false,
-                    onConfirm = { title, priority, _, _ ->
+                    onConfirm = { title, priority, _, category, _ ->
                         submittedTitle = title
                         submittedPriority = priority
+                        submittedCategory = category
                     },
                     onDismiss = {}
                 )
@@ -42,24 +45,26 @@ class AddTaskDialogTest {
 
         composeRule.onAllNodesWithText("Добавить")[0].assertIsNotEnabled()
         composeRule.onNode(hasSetTextAction()).performTextInput("Подготовить защиту")
+        composeRule.onNodeWithText("Работа").performClick()
         composeRule.onNodeWithText("Высокий").performClick()
         composeRule.onAllNodesWithText("Добавить")[0].performClick()
 
         composeRule.runOnIdle {
             assertEquals("Подготовить защиту", submittedTitle)
             assertEquals(TaskPriority.HIGH.value, submittedPriority)
+            assertEquals(TaskCategory.WORK, submittedCategory)
         }
     }
 
     @Test
-    fun editMode_showsSaveButton() {
+    fun editModeShowsSaveButton() {
         composeRule.setContent {
             MaterialTheme {
                 AddTaskDialog(
                     initialTitle = "Обновить слайды",
                     initialPriority = TaskPriority.MEDIUM.value,
                     isEdit = true,
-                    onConfirm = { _, _, _, _ -> },
+                    onConfirm = { _, _, _, _, _ -> },
                     onDismiss = {}
                 )
             }
@@ -69,7 +74,7 @@ class AddTaskDialogTest {
     }
 
     @Test
-    fun addTaskDialog_passesShareToFeedFlagWhenChecked() {
+    fun addTaskDialogPassesShareToFeedFlagWhenChecked() {
         var shareToFeed: Boolean? = null
 
         composeRule.setContent {
@@ -78,7 +83,7 @@ class AddTaskDialogTest {
                     initialTitle = "",
                     initialPriority = TaskPriority.MEDIUM.value,
                     isEdit = false,
-                    onConfirm = { _, _, _, share ->
+                    onConfirm = { _, _, _, _, share ->
                         shareToFeed = share
                     },
                     onDismiss = {}

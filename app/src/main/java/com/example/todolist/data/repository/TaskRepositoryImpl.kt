@@ -8,6 +8,7 @@ import com.example.todolist.data.local.UserPreferences
 import com.example.todolist.data.mapper.toDomain
 import com.example.todolist.data.mapper.toEntity
 import com.example.todolist.domain.model.Task
+import com.example.todolist.domain.model.TaskCategory
 import com.example.todolist.domain.repository.TaskRepository
 import kotlinx.coroutines.flow.first
 
@@ -24,24 +25,26 @@ class TaskRepositoryImpl(
     override suspend fun getTasks(): Result<List<Task>> {
         val userId = getCurrentUserId()
         return runCatching {
-            Log.d(TAG, "Получаем задачи с сервера для текущего пользователя")
-            val tasks = api.getTasks()
-            Log.d(TAG, "Сервер вернул ${tasks.size} задач")
+            val cachedCategories = taskDao.getTasksByUserSync(userId)
+                .associate { entity -> entity.id to entity.category }
 
-            Log.d(TAG, "Удаляем старые задачи из кэша")
+            Log.d(TAG, "Loading tasks from server for current user")
+            val tasks = api.getTasks()
+            Log.d(TAG, "Server returned ${tasks.size} tasks")
+
             taskDao.deleteTasksByUser(userId)
 
-            val entities = tasks.map { it.toEntity() }
-            Log.d(TAG, "Вставляем ${entities.size} задач в кэш")
+            val entities = tasks.map { task ->
+                task.copy(category = TaskCategory.fromName(cachedCategories[task.id])).toEntity()
+            }
             taskDao.insertAll(entities)
 
-            Log.d(TAG, "Кэш обновлён")
-            tasks
+            entities.map { it.toDomain() }
         }.recoverCatching { error ->
             if (error is SessionExpiredException) throw error
-            Log.e(TAG, "Ошибка сети: ${error.message}. Читаем из кэша")
+
+            Log.e(TAG, "Network error: ${error.message}. Reading from cache")
             val cached = taskDao.getTasksByUserSync(userId)
-            Log.d(TAG, "В кэше найдено ${cached.size} задач")
             if (cached.isNotEmpty()) {
                 cached.map { it.toDomain() }
             } else {
@@ -53,10 +56,11 @@ class TaskRepositoryImpl(
     override suspend fun createTask(
         title: String,
         priority: Int,
-        dueDate: String?
+        dueDate: String?,
+        category: TaskCategory
     ): Result<Task> {
         return runCatching {
-            val task = api.createTask(title, priority, dueDate)  // ← ПЕРЕДАЁМ dueDate!
+            val task = api.createTask(title, priority, dueDate).copy(category = category)
             taskDao.insertAll(listOf(task.toEntity()))
             task
         }
@@ -64,11 +68,9 @@ class TaskRepositoryImpl(
 
     override suspend fun updateTask(taskId: String, isDone: Boolean): Result<Boolean> {
         return runCatching {
-            Log.d(TAG, "️ Обновляем статус задачи $taskId на isDone=$isDone")
             val success = api.updateTask(taskId = taskId, isDone = isDone)
             if (success) {
                 taskDao.updateTaskStatus(taskId, isDone)
-                Log.d(TAG, "Статус обновлён в кэше")
             }
             success
         }
@@ -78,10 +80,10 @@ class TaskRepositoryImpl(
         taskId: String,
         title: String,
         priority: Int,
-        dueDate: String?
+        dueDate: String?,
+        category: TaskCategory
     ): Result<Boolean> {
         return runCatching {
-            Log.d(TAG, "✏Обновляем детали задачи $taskId")
             val success = api.updateTask(
                 taskId = taskId,
                 title = title,
@@ -89,8 +91,7 @@ class TaskRepositoryImpl(
                 dueDate = dueDate
             )
             if (success) {
-                taskDao.updateTaskDetails(taskId, title, priority, dueDate)
-                Log.d(TAG, "Детали обновлены в кэше")
+                taskDao.updateTaskDetails(taskId, title, priority, dueDate, category.name)
             }
             success
         }
@@ -98,11 +99,9 @@ class TaskRepositoryImpl(
 
     override suspend fun deleteTask(taskId: String): Result<Boolean> {
         return runCatching {
-            Log.d(TAG, "Удаляем задачу $taskId")
             val success = api.deleteTask(taskId)
             if (success) {
                 taskDao.deleteTask(taskId)
-                Log.d(TAG, "Задача удалена из кэша")
             }
             success
         }
@@ -110,9 +109,7 @@ class TaskRepositoryImpl(
 
     override suspend fun createPost(content: String, taskId: String?): Result<Unit> {
         return runCatching {
-            Log.d(TAG, "📝 Создаём пост в ленте для задачи $taskId")
             api.createPost(content, taskId)
-            Log.d(TAG, "✅ Пост создан")
         }
     }
 

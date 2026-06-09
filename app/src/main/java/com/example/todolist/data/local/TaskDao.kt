@@ -23,11 +23,12 @@ interface TaskDao {
     @Query("UPDATE tasks_cache SET isDone = :isDone WHERE id = :taskId")
     suspend fun updateTaskStatus(taskId: String, isDone: Boolean)
 
-    @Query("UPDATE tasks_cache SET title = :title, priority = :priority, dueDate = :dueDate WHERE id = :taskId")
+    @Query("UPDATE tasks_cache SET title = :title, priority = :priority, dueDate = :dueDate, category = :category WHERE id = :taskId")
     suspend fun updateTaskDetails(
         taskId: String,
         title: String,
         priority: Int,
-        dueDate: String?
+        dueDate: String?,
+        category: String
     )
 }

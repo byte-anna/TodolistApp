@@ -7,6 +7,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import com.example.todolist.domain.model.Task
+import com.example.todolist.domain.model.TaskCategory
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -18,7 +19,7 @@ class TaskItemTest {
     val composeRule = createComposeRule()
 
     @Test
-    fun taskItem_callsToggleWhenCheckboxClicked() {
+    fun taskItemCallsToggleWhenCheckboxClicked() {
         var toggleCalled = false
 
         composeRule.setContent {
@@ -39,7 +40,7 @@ class TaskItemTest {
     }
 
     @Test
-    fun taskItem_callsEditWhenEditButtonClicked() {
+    fun taskItemCallsEditWhenEditButtonClicked() {
         var editCalls = 0
 
         composeRule.setContent {
@@ -60,7 +61,7 @@ class TaskItemTest {
     }
 
     @Test
-    fun taskItem_showsFormattedDeadline() {
+    fun taskItemShowsFormattedDeadline() {
         composeRule.setContent {
             MaterialTheme {
                 TaskItem(
@@ -79,10 +80,30 @@ class TaskItemTest {
         composeRule.onNodeWithText("⏰ 10.06 14:30").assertIsDisplayed()
     }
 
+    @Test
+    fun taskItemShowsCategoryLabelWhenPresent() {
+        composeRule.setContent {
+            MaterialTheme {
+                TaskItem(
+                    task = task(
+                        id = "task-4",
+                        title = "Подготовить демо",
+                        category = TaskCategory.STUDY
+                    ),
+                    onToggle = {},
+                    onEdit = {}
+                )
+            }
+        }
+
+        composeRule.onNodeWithText("Учеба").assertIsDisplayed()
+    }
+
     private fun task(
         id: String,
         title: String,
-        dueDate: String? = null
+        dueDate: String? = null,
+        category: TaskCategory = TaskCategory.NONE
     ) = Task(
         id = id,
         userId = "user-1",
@@ -90,6 +111,7 @@ class TaskItemTest {
         isDone = false,
         priority = 1,
         dueDate = dueDate,
-        createdAt = "2026-06-09T10:00:00"
+        createdAt = "2026-06-09T10:00:00",
+        category = category
     )
 }

@@ -30,7 +30,7 @@ class AppDatabaseMigrationTest {
     }
 
     @Test
-    fun migrate1To2_keepsExistingTasksAndRemovesLegacyColumn() {
+    fun migrate1To2KeepsExistingTasksAndRemovesLegacyColumn() {
         val legacyDb = context.openOrCreateDatabase(databaseName, Context.MODE_PRIVATE, null)
         legacyDb.execSQL(
             """
@@ -56,7 +56,7 @@ class AppDatabaseMigrationTest {
         legacyDb.close()
 
         val migratedDb = Room.databaseBuilder(context, AppDatabase::class.java, databaseName)
-            .addMigrations(AppDatabase.MIGRATION_1_2)
+            .addMigrations(AppDatabase.MIGRATION_1_2, AppDatabase.MIGRATION_2_3)
             .build()
 
         val migratedTasks = runBlocking {
@@ -66,6 +66,7 @@ class AppDatabaseMigrationTest {
         assertEquals("task-1", migratedTasks.first().id)
         assertEquals("Finish report", migratedTasks.first().title)
         assertEquals("2026-06-10T12:00:00", migratedTasks.first().dueDate)
+        assertEquals("NONE", migratedTasks.first().category)
 
         val columnsCursor = migratedDb.openHelper.writableDatabase.query("PRAGMA table_info(tasks_cache)")
         val columns = mutableListOf<String>()
@@ -75,6 +76,44 @@ class AppDatabaseMigrationTest {
         columnsCursor.close()
 
         assertFalse(columns.contains("folderId"))
+
+        migratedDb.close()
+    }
+
+    @Test
+    fun migrate2To3AddsCategoryColumnWithDefaultValue() {
+        val version2Db = context.openOrCreateDatabase(databaseName, Context.MODE_PRIVATE, null)
+        version2Db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS tasks_cache (
+                id TEXT NOT NULL PRIMARY KEY,
+                userId TEXT NOT NULL,
+                title TEXT NOT NULL,
+                isDone INTEGER NOT NULL,
+                priority INTEGER NOT NULL,
+                dueDate TEXT,
+                createdAt TEXT NOT NULL
+            )
+            """.trimIndent()
+        )
+        version2Db.execSQL(
+            """
+            INSERT INTO tasks_cache (id, userId, title, isDone, priority, dueDate, createdAt)
+            VALUES ('task-2', 'user-2', 'Prepare slides', 0, 1, NULL, '2026-06-09T12:00:00')
+            """.trimIndent()
+        )
+        version2Db.execSQL("PRAGMA user_version = 2")
+        version2Db.close()
+
+        val migratedDb = Room.databaseBuilder(context, AppDatabase::class.java, databaseName)
+            .addMigrations(AppDatabase.MIGRATION_2_3)
+            .build()
+
+        val migratedTasks = runBlocking {
+            migratedDb.taskDao().getTasksByUserSync("user-2")
+        }
+        assertEquals(1, migratedTasks.size)
+        assertEquals("NONE", migratedTasks.first().category)
 
         migratedDb.close()
     }

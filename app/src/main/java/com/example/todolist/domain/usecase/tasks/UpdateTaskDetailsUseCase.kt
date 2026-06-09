@@ -1,5 +1,6 @@
 package com.example.todolist.domain.usecase.tasks
 
+import com.example.todolist.domain.model.TaskCategory
 import com.example.todolist.domain.repository.TaskRepository
 import javax.inject.Inject
 
@@ -10,8 +11,9 @@ class UpdateTaskDetailsUseCase @Inject constructor(
         taskId: String,
         title: String,
         priority: Int,
-        dueDate: String?
+        dueDate: String?,
+        category: TaskCategory
     ): Result<Boolean> {
-        return taskRepository.updateTaskDetails(taskId, title, priority, dueDate)
+        return taskRepository.updateTaskDetails(taskId, title, priority, dueDate, category)
     }
 }

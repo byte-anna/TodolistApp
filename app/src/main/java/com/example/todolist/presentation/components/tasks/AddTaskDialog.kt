@@ -16,6 +16,7 @@ import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -38,6 +39,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import com.example.todolist.R
+import com.example.todolist.domain.model.TaskCategory
 import com.example.todolist.domain.model.TaskPriority
 import java.time.Instant
 import java.time.LocalDateTime
@@ -50,41 +52,33 @@ fun AddTaskDialog(
     initialTitle: String,
     initialPriority: Int,
     initialDueDate: String? = null,
+    initialCategory: TaskCategory = TaskCategory.NONE,
     isEdit: Boolean,
-    onConfirm: (String, Int, String?, Boolean) -> Unit,
+    onConfirm: (String, Int, String?, TaskCategory, Boolean) -> Unit,
     onDismiss: () -> Unit
 ) {
     var title by remember { mutableStateOf(initialTitle) }
     var priority by remember { mutableIntStateOf(initialPriority) }
     var dueDate by remember { mutableStateOf(initialDueDate) }
+    var category by remember { mutableStateOf(initialCategory) }
     var shareToFeed by remember { mutableStateOf(false) }
     var showDateTimePicker by remember { mutableStateOf(false) }
 
     val datePickerState = rememberDatePickerState(
         initialSelectedDateMillis = dueDate?.let {
-            try {
+            runCatching {
                 LocalDateTime.parse(it).atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
-            } catch (_: Exception) {
-                null
-            }
+            }.getOrNull()
         }
     )
 
     val currentTime = LocalDateTime.now()
     val timePickerState = rememberTimePickerState(
         initialHour = dueDate?.let {
-            try {
-                LocalDateTime.parse(it).hour
-            } catch (_: Exception) {
-                currentTime.hour
-            }
+            runCatching { LocalDateTime.parse(it).hour }.getOrNull()
         } ?: currentTime.hour,
         initialMinute = dueDate?.let {
-            try {
-                LocalDateTime.parse(it).minute
-            } catch (_: Exception) {
-                currentTime.minute
-            }
+            runCatching { LocalDateTime.parse(it).minute }.getOrNull()
         } ?: currentTime.minute,
         is24Hour = true
     )
@@ -123,26 +117,37 @@ fun AddTaskDialog(
                             Text("Дедлайн:")
                         }
 
+                        val deadlineText = dueDate?.let { value ->
+                            runCatching {
+                                LocalDateTime.parse(value).format(DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm"))
+                            }.getOrElse { value }
+                        } ?: "Выбрать дату и время"
+
                         Text(
-                            text = dueDate?.let {
-                                try {
-                                    val dt = LocalDateTime.parse(it)
-                                    val formatter = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm")
-                                    dt.format(formatter)
-                                } catch (_: Exception) {
-                                    it
-                                }
-                            } ?: "Выбрать дату и время",
+                            text = deadlineText,
                             style = MaterialTheme.typography.bodySmall,
-                            color = if (dueDate == null) {
-                                Color.Gray
-                            } else {
-                                MaterialTheme.colorScheme.onSurface
-                            }
+                            color = if (dueDate == null) Color.Gray else MaterialTheme.colorScheme.onSurface
                         )
                     }
                 }
-                Spacer(Modifier.height(8.dp))
+                Spacer(Modifier.height(12.dp))
+
+                Text("Категория:", style = MaterialTheme.typography.bodyMedium)
+                Spacer(Modifier.height(4.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    TaskCategory.entries.forEach { item ->
+                        FilterChip(
+                            selected = category == item,
+                            onClick = { category = item },
+                            label = { Text(item.label) }
+                        )
+                    }
+                }
+
+                Spacer(Modifier.height(12.dp))
 
                 Text("Приоритет:", style = MaterialTheme.typography.bodyMedium)
                 Spacer(Modifier.height(4.dp))
@@ -194,7 +199,7 @@ fun AddTaskDialog(
             Button(
                 onClick = {
                     if (title.isNotBlank()) {
-                        onConfirm(title.trim(), priority, dueDate, shareToFeed)
+                        onConfirm(title.trim(), priority, dueDate, category, shareToFeed)
                     }
                 },
                 enabled = title.isNotBlank()

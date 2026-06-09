@@ -1,6 +1,7 @@
 package com.example.todolist.presentation.components.tasks
 
 import com.example.todolist.domain.model.Task
+import com.example.todolist.domain.model.TaskCategory
 import com.example.todolist.domain.model.TaskPriority
 import com.example.todolist.domain.repository.SessionRepository
 import com.example.todolist.domain.repository.TaskRepository
@@ -69,13 +70,13 @@ class TasksViewModelTest {
     }
 
     @Test
-    fun `initial state has empty tasks`() = runTest {
+    fun initialStateHasEmptyTasks() = runTest {
         val state = viewModel.uiState.value
         assertTrue(state.tasks.isEmpty())
     }
 
     @Test
-    fun `toggleTask calls updateTask repository with correct parameters`() = runTest {
+    fun toggleTaskCallsUpdateTaskRepositoryWithCorrectParameters() = runTest {
         coEvery { mockRepository.updateTask(any(), any()) } returns Result.success(true)
 
         viewModel.toggleTask("task123", true)
@@ -85,7 +86,7 @@ class TasksViewModelTest {
     }
 
     @Test
-    fun `addTask calls repository and reloads tasks`() = runTest {
+    fun addTaskCallsRepositoryAndReloadsTasks() = runTest {
         val mockTask = Task(
             id = "1",
             userId = "test_user",
@@ -93,20 +94,21 @@ class TasksViewModelTest {
             isDone = false,
             priority = TaskPriority.HIGH.value,
             dueDate = null,
-            createdAt = null
+            createdAt = null,
+            category = TaskCategory.WORK
         )
-        coEvery { mockRepository.createTask(any(), any(), any()) } returns Result.success(mockTask)
+        coEvery { mockRepository.createTask(any(), any(), any(), any()) } returns Result.success(mockTask)
 
-        viewModel.addTask("Новая задача", TaskPriority.HIGH.value, null, false)
+        viewModel.addTask("Новая задача", TaskPriority.HIGH.value, null, TaskCategory.WORK, false)
         testDispatcher.scheduler.advanceUntilIdle()
 
         coVerify {
-            mockRepository.createTask("Новая задача", TaskPriority.HIGH.value, null)
+            mockRepository.createTask("Новая задача", TaskPriority.HIGH.value, null, TaskCategory.WORK)
         }
     }
 
     @Test
-    fun `deleteTask calls deleteTask repository`() = runTest {
+    fun deleteTaskCallsDeleteTaskRepository() = runTest {
         coEvery { mockRepository.deleteTask(any()) } returns Result.success(true)
 
         viewModel.deleteTask("task456")
@@ -117,7 +119,7 @@ class TasksViewModelTest {
     }
 
     @Test
-    fun `loadTasks updates state with fetched tasks`() = runTest {
+    fun loadTasksUpdatesStateWithFetchedTasks() = runTest {
         val mockTasks = listOf(
             Task("1", "test_user", "Задача 1", false, TaskPriority.MEDIUM.value, null, null),
             Task("2", "test_user", "Задача 2", true, TaskPriority.HIGH.value, null, null)
@@ -133,7 +135,7 @@ class TasksViewModelTest {
     }
 
     @Test
-    fun `loadTasks handles repository error gracefully`() = runTest {
+    fun loadTasksHandlesRepositoryErrorGracefully() = runTest {
         coEvery { mockRepository.getTasks() } returns Result.failure(Exception("Network error"))
 
         viewModel.loadTasks()
@@ -145,7 +147,7 @@ class TasksViewModelTest {
     }
 
     @Test
-    fun `showAddDialog sets dialogTask in state`() = runTest {
+    fun showAddDialogSetsDialogTaskInState() = runTest {
         viewModel.showAddDialog()
         testDispatcher.scheduler.advanceUntilIdle()
 
@@ -153,10 +155,11 @@ class TasksViewModelTest {
         assertTrue(state.dialogTask != null)
         assertEquals("", state.dialogTask!!.id)
         assertEquals(TaskPriority.MEDIUM.value, state.dialogTask!!.priority)
+        assertEquals(TaskCategory.NONE, state.dialogTask!!.category)
     }
 
     @Test
-    fun `updateTask calls updateTaskDetails with correct parameters`() = runTest {
+    fun updateTaskCallsUpdateTaskDetailsWithCorrectParameters() = runTest {
         val task = Task(
             id = "task789",
             userId = "test_user",
@@ -169,10 +172,15 @@ class TasksViewModelTest {
         viewModel.showEditDialog(task)
 
         coEvery {
-            mockRepository.updateTaskDetails(any(), any(), any(), any())
+            mockRepository.updateTaskDetails(any(), any(), any(), any(), any())
         } returns Result.success(true)
 
-        viewModel.updateTask("Новое название", TaskPriority.HIGH.value, "2024-12-31")
+        viewModel.updateTask(
+            "Новое название",
+            TaskPriority.HIGH.value,
+            "2024-12-31",
+            TaskCategory.PERSONAL
+        )
         testDispatcher.scheduler.advanceUntilIdle()
 
         coVerify {
@@ -180,13 +188,14 @@ class TasksViewModelTest {
                 taskId = "task789",
                 title = "Новое название",
                 priority = TaskPriority.HIGH.value,
-                dueDate = "2024-12-31"
+                dueDate = "2024-12-31",
+                category = TaskCategory.PERSONAL
             )
         }
     }
 
     @Test
-    fun `visibleTasks filters active tasks`() = runTest {
+    fun visibleTasksFiltersActiveTasks() = runTest {
         val mockTasks = listOf(
             Task("1", "test_user", "Активная", false, TaskPriority.MEDIUM.value, null, null),
             Task("2", "test_user", "Выполненная", true, TaskPriority.HIGH.value, null, null)
@@ -202,7 +211,7 @@ class TasksViewModelTest {
     }
 
     @Test
-    fun `visibleTasks sorts by deadline when selected`() = runTest {
+    fun visibleTasksSortsByDeadlineWhenSelected() = runTest {
         val mockTasks = listOf(
             Task("1", "test_user", "Позже", false, TaskPriority.MEDIUM.value, "2026-06-12T10:00:00", null),
             Task("2", "test_user", "Раньше", false, TaskPriority.LOW.value, "2026-06-10T10:00:00", null)
@@ -217,7 +226,7 @@ class TasksViewModelTest {
     }
 
     @Test
-    fun `updateSearchQuery updates search query state`() = runTest {
+    fun updateSearchQueryUpdatesSearchQueryState() = runTest {
         viewModel.updateSearchQuery("Купить")
         testDispatcher.scheduler.advanceUntilIdle()
 

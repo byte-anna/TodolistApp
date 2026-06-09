@@ -12,5 +12,6 @@ data class TaskEntity(
     val isDone: Boolean,
     val priority: Int,
     val dueDate: String?,
-    val createdAt: String
+    val createdAt: String,
+    val category: String = "NONE"
 )
