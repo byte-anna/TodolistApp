@@ -6,6 +6,7 @@ import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
@@ -65,5 +66,32 @@ class AddTaskDialogTest {
         }
 
         composeRule.onNodeWithText("Сохранить").assertIsDisplayed()
+    }
+
+    @Test
+    fun addTaskDialog_passesShareToFeedFlagWhenChecked() {
+        var shareToFeed: Boolean? = null
+
+        composeRule.setContent {
+            MaterialTheme {
+                AddTaskDialog(
+                    initialTitle = "",
+                    initialPriority = TaskPriority.MEDIUM.value,
+                    isEdit = false,
+                    onConfirm = { _, _, _, share ->
+                        shareToFeed = share
+                    },
+                    onDismiss = {}
+                )
+            }
+        }
+
+        composeRule.onNodeWithTag("task_title_input").performTextInput("Опубликовать достижение")
+        composeRule.onNodeWithTag("share_to_feed_checkbox").performClick()
+        composeRule.onAllNodesWithText("Добавить")[0].performClick()
+
+        composeRule.runOnIdle {
+            assertEquals(true, shareToFeed)
+        }
     }
 }

@@ -53,6 +53,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
@@ -407,7 +408,8 @@ fun TaskItem(
             ) {
                 androidx.compose.material3.Checkbox(
                     checked = task.isDone,
-                    onCheckedChange = { onToggle() }
+                    onCheckedChange = { onToggle() },
+                    modifier = Modifier.testTag("task_checkbox_${task.id}")
                 )
                 Text(
                     text = task.title,
@@ -419,7 +421,10 @@ fun TaskItem(
                         .weight(1f)
                         .padding(horizontal = 8.dp)
                 )
-                IconButton(onClick = onEdit) {
+                IconButton(
+                    onClick = onEdit,
+                    modifier = Modifier.testTag("task_edit_${task.id}")
+                ) {
                     Icon(
                         Icons.Default.Edit,
                         contentDescription = "Редактировать",

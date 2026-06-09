@@ -34,6 +34,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import com.example.todolist.R
@@ -97,7 +98,9 @@ fun AddTaskDialog(
                     value = title,
                     onValueChange = { title = it },
                     label = { Text("Название") },
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("task_title_input"),
                     singleLine = true
                 )
                 Spacer(Modifier.height(8.dp))
@@ -177,7 +180,8 @@ fun AddTaskDialog(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Checkbox(
                         checked = shareToFeed,
-                        onCheckedChange = { shareToFeed = it }
+                        onCheckedChange = { shareToFeed = it },
+                        modifier = Modifier.testTag("share_to_feed_checkbox")
                     )
                     Text(
                         text = "Опубликовать как достижение",
