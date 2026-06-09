@@ -26,7 +26,7 @@
     <string name="tasks_retry">Повторить</string>
     <string name="tasks_sort_label">Сортировка: %1$s</string>
     <string name="tasks_empty">Нет задач. Добавь первую!</string>
-    <string name="tasks_search_empty">Ничего не найдено по запросу \"%1$s\"</string>
+    <string name="tasks_search_empty">Ничего не найдено по запросу "%1$s"</string>
     <string name="tasks_create_first">Создать первую задачу</string>
     <string name="tasks_completed_count">Выполнено задач: %1$d</string>
     <string name="tasks_clear_all">Очистить всё</string>
@@ -53,4 +53,16 @@
     <string name="feed_retry">Повторить</string>
     <string name="feed_empty">Пока нет достижений. Будь первым!</string>
     <string name="feed_like">Нравится</string>
+
+    <string name="stats_title">Статистика</string>
+    <string name="stats_summary_title">Общая сводка</string>
+    <string name="stats_summary_subtitle">Выполнено %1$d из %2$d задач</string>
+    <string name="stats_total">Всего задач</string>
+    <string name="stats_active">Активные задачи</string>
+    <string name="stats_completed">Выполненные задачи</string>
+    <string name="stats_overdue">Просроченные задачи</string>
+    <string name="stats_completion_percent">Процент выполнения</string>
+    <string name="stats_high_priority">Высокий приоритет</string>
+    <string name="stats_medium_priority">Средний приоритет</string>
+    <string name="stats_low_priority">Низкий приоритет</string>
 </resources>

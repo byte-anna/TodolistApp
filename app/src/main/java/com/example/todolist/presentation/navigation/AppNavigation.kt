@@ -21,6 +21,7 @@ import com.example.todolist.data.local.UserPreferences
 import com.example.todolist.presentation.auth.LoginScreen
 import com.example.todolist.presentation.auth.LoginViewModel
 import com.example.todolist.presentation.components.feed.FeedScreen
+import com.example.todolist.presentation.components.stats.StatsScreen
 import com.example.todolist.presentation.components.tasks.TasksScreen
 import kotlinx.coroutines.launch
 
@@ -85,6 +86,7 @@ fun AppNavigation() {
             TasksScreen(
                 userName = userName,
                 onOpenFeed = { navController.navigate(AppRoute.Feed.route) },
+                onOpenStats = { navController.navigate(AppRoute.Stats.route) },
                 onLogout = {
                     scope.launch {
                         userPreferences.clearSession()
@@ -104,6 +106,15 @@ fun AppNavigation() {
                 onBackClick = { navController.popBackStack() },
                 onSessionExpired = {
                     navigateToLogin(AppRoute.Feed.route)
+                }
+            )
+        }
+
+        composable(AppRoute.Stats.route) {
+            StatsScreen(
+                onBackClick = { navController.popBackStack() },
+                onSessionExpired = {
+                    navigateToLogin(AppRoute.Stats.route)
                 }
             )
         }

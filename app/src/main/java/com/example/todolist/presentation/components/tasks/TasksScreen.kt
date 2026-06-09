@@ -76,6 +76,7 @@ import java.time.format.DateTimeFormatter
 fun TasksScreen(
     userName: String? = null,
     onOpenFeed: () -> Unit,
+    onOpenStats: () -> Unit,
     onLogout: () -> Unit,
     onSessionExpired: () -> Unit
 ) {
@@ -125,6 +126,13 @@ fun TasksScreen(
                     }
                 },
                 actions = {
+                    IconButton(onClick = onOpenStats) {
+                        Icon(
+                            imageVector = Icons.Default.Star,
+                            contentDescription = stringResource(R.string.stats_title),
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    }
                     IconButton(onClick = onOpenFeed) {
                         Icon(
                             imageVector = Icons.Default.Notifications,

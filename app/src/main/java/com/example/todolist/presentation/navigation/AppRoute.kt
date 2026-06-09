@@ -5,4 +5,5 @@ sealed class AppRoute(val route: String) {
     data object Login : AppRoute("login")
     data object Tasks : AppRoute("tasks")
     data object Feed : AppRoute("feed")
+    data object Stats : AppRoute("stats")
 }
