@@ -23,8 +23,10 @@
     <string name="tasks_search_icon">Поиск</string>
     <string name="tasks_clear_search">Очистить</string>
     <string name="tasks_close_error">Закрыть</string>
+    <string name="tasks_retry">Повторить</string>
     <string name="tasks_empty">Нет задач. Добавь первую!</string>
     <string name="tasks_search_empty">Ничего не найдено по запросу \"%1$s\"</string>
+    <string name="tasks_create_first">Создать первую задачу</string>
     <string name="tasks_completed_count">Выполнено задач: %1$d</string>
     <string name="tasks_clear_all">Очистить всё</string>
     <string name="tasks_delete">Удалить</string>

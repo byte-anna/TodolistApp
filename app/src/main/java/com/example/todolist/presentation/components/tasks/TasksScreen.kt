@@ -186,8 +186,13 @@ fun TasksScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(text = error, color = Color.Red)
-                        TextButton(onClick = { viewModel.clearError() }) {
-                            Text(stringResource(R.string.tasks_close_error))
+                        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                            TextButton(onClick = { viewModel.loadTasks() }) {
+                                Text(stringResource(R.string.tasks_retry))
+                            }
+                            TextButton(onClick = { viewModel.clearError() }) {
+                                Text(stringResource(R.string.tasks_close_error))
+                            }
                         }
                     }
                 }
@@ -205,15 +210,29 @@ fun TasksScreen(
 
                 if (filteredTasks.isEmpty()) {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Text(
-                            text = if (searchQuery.isEmpty()) {
-                                stringResource(R.string.tasks_empty)
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            Text(
+                                text = if (searchQuery.isEmpty()) {
+                                    stringResource(R.string.tasks_empty)
+                                } else {
+                                    stringResource(R.string.tasks_search_empty, searchQuery)
+                                },
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = Color.Gray
+                            )
+                            if (searchQuery.isEmpty()) {
+                                TextButton(onClick = { viewModel.showAddDialog() }) {
+                                    Text(stringResource(R.string.tasks_create_first))
+                                }
                             } else {
-                                stringResource(R.string.tasks_search_empty, searchQuery)
-                            },
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = Color.Gray
-                        )
+                                TextButton(onClick = { viewModel.clearSearch() }) {
+                                    Text(stringResource(R.string.tasks_clear_search))
+                                }
+                            }
+                        }
                     }
                 } else {
                     LazyColumn(
