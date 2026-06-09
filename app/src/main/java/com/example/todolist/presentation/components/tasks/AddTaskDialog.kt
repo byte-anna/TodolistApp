@@ -1,18 +1,47 @@
 package com.example.todolist.presentation.components.tasks
 
-import androidx.compose.foundation.layout.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.Divider
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TimePicker
+import androidx.compose.material3.rememberDatePickerState
+import androidx.compose.material3.rememberTimePickerState
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.unit.dp
+import com.example.todolist.R
+import com.example.todolist.domain.model.TaskPriority
 import java.time.Instant
 import java.time.LocalDateTime
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
-import com.example.todolist.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -28,36 +57,42 @@ fun AddTaskDialog(
     var priority by remember { mutableIntStateOf(initialPriority) }
     var dueDate by remember { mutableStateOf(initialDueDate) }
     var shareToFeed by remember { mutableStateOf(false) }
+    var showDateTimePicker by remember { mutableStateOf(false) }
 
-    // DatePicker состояние
     val datePickerState = rememberDatePickerState(
         initialSelectedDateMillis = dueDate?.let {
             try {
                 LocalDateTime.parse(it).atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
-            } catch (e: Exception) { null }
+            } catch (_: Exception) {
+                null
+            }
         }
     )
 
-    // TimePicker состояние
     val currentTime = LocalDateTime.now()
     val timePickerState = rememberTimePickerState(
         initialHour = dueDate?.let {
-            try { LocalDateTime.parse(it).hour } catch (e: Exception) { currentTime.hour }
+            try {
+                LocalDateTime.parse(it).hour
+            } catch (_: Exception) {
+                currentTime.hour
+            }
         } ?: currentTime.hour,
         initialMinute = dueDate?.let {
-            try { LocalDateTime.parse(it).minute } catch (e: Exception) { currentTime.minute }
+            try {
+                LocalDateTime.parse(it).minute
+            } catch (_: Exception) {
+                currentTime.minute
+            }
         } ?: currentTime.minute,
         is24Hour = true
     )
-
-    var showDateTimePicker by remember { mutableStateOf(false) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(if (isEdit) "Редактировать задачу" else "Новая задача") },
         text = {
             Column {
-                // Название задачи
                 OutlinedTextField(
                     value = title,
                     onValueChange = { title = it },
@@ -67,7 +102,6 @@ fun AddTaskDialog(
                 )
                 Spacer(Modifier.height(8.dp))
 
-                // Кнопка выбора даты и времени
                 OutlinedButton(
                     onClick = { showDateTimePicker = true },
                     modifier = Modifier.fillMaxWidth()
@@ -92,22 +126,48 @@ fun AddTaskDialog(
                                     val dt = LocalDateTime.parse(it)
                                     val formatter = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm")
                                     dt.format(formatter)
-                                } catch (e: Exception) { it }
+                                } catch (_: Exception) {
+                                    it
+                                }
                             } ?: "Выбрать дату и время",
                             style = MaterialTheme.typography.bodySmall,
-                            color = if (dueDate == null) Color.Gray else MaterialTheme.colorScheme.onSurface
+                            color = if (dueDate == null) {
+                                Color.Gray
+                            } else {
+                                MaterialTheme.colorScheme.onSurface
+                            }
                         )
                     }
                 }
                 Spacer(Modifier.height(8.dp))
 
-                // Приоритет
                 Text("Приоритет:", style = MaterialTheme.typography.bodyMedium)
                 Spacer(Modifier.height(4.dp))
-                Row(Modifier.fillMaxWidth(), Arrangement.spacedBy(8.dp)) {
-                    PriorityButton("Высокий", Color.Red, priority == 1) { priority = 1 }
-                    PriorityButton("Средний", Color(0xFFFFA500), priority == 2) { priority = 2 }
-                    PriorityButton("Низкий", Color.Green, priority == 3) { priority = 3 }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    PriorityButton(
+                        label = TaskPriority.HIGH.label,
+                        color = Color.Red,
+                        selected = priority == TaskPriority.HIGH.value
+                    ) {
+                        priority = TaskPriority.HIGH.value
+                    }
+                    PriorityButton(
+                        label = TaskPriority.MEDIUM.label,
+                        color = Color(0xFFFFA500),
+                        selected = priority == TaskPriority.MEDIUM.value
+                    ) {
+                        priority = TaskPriority.MEDIUM.value
+                    }
+                    PriorityButton(
+                        label = TaskPriority.LOW.label,
+                        color = Color.Green,
+                        selected = priority == TaskPriority.LOW.value
+                    ) {
+                        priority = TaskPriority.LOW.value
+                    }
                 }
 
                 Spacer(Modifier.height(12.dp))
@@ -134,14 +194,17 @@ fun AddTaskDialog(
                     }
                 },
                 enabled = title.isNotBlank()
-            ) { Text(if (isEdit) "Сохранить" else "Добавить") }
+            ) {
+                Text(if (isEdit) "Сохранить" else "Добавить")
+            }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Отмена") }
+            TextButton(onClick = onDismiss) {
+                Text("Отмена")
+            }
         }
     )
 
-    // Диалог выбора даты и времени
     if (showDateTimePicker) {
         AlertDialog(
             onDismissRequest = { showDateTimePicker = false },
@@ -156,26 +219,37 @@ fun AddTaskDialog(
                 }
             },
             confirmButton = {
-                TextButton(onClick = {
-                    val dateMillis = datePickerState.selectedDateMillis
-                    if (dateMillis != null) {
-                        val date = Instant.ofEpochMilli(dateMillis)
-                            .atZone(ZoneId.systemDefault())
-                            .toLocalDate()
-                        val dateTime = LocalDateTime.of(
-                            date.year, date.month, date.dayOfMonth,
-                            timePickerState.hour, timePickerState.minute
-                        )
-                        dueDate = dateTime.toString()
+                TextButton(
+                    onClick = {
+                        val dateMillis = datePickerState.selectedDateMillis
+                        if (dateMillis != null) {
+                            val date = Instant.ofEpochMilli(dateMillis)
+                                .atZone(ZoneId.systemDefault())
+                                .toLocalDate()
+                            val dateTime = LocalDateTime.of(
+                                date.year,
+                                date.month,
+                                date.dayOfMonth,
+                                timePickerState.hour,
+                                timePickerState.minute
+                            )
+                            dueDate = dateTime.toString()
+                        }
+                        showDateTimePicker = false
                     }
-                    showDateTimePicker = false
-                }) { Text("OK") }
+                ) {
+                    Text("OK")
+                }
             },
             dismissButton = {
-                TextButton(onClick = {
-                    dueDate = null
-                    showDateTimePicker = false
-                }) { Text("Очистить") }
+                TextButton(
+                    onClick = {
+                        dueDate = null
+                        showDateTimePicker = false
+                    }
+                ) {
+                    Text("Очистить")
+                }
             }
         )
     }

@@ -3,6 +3,7 @@ package com.example.todolist.presentation.components.tasks
 import android.app.Application
 import com.example.todolist.data.local.UserPreferences
 import com.example.todolist.domain.model.Task
+import com.example.todolist.domain.model.TaskPriority
 import com.example.todolist.domain.repository.TaskRepository
 import com.example.todolist.domain.usecase.tasks.CreatePostUseCase
 import com.example.todolist.domain.usecase.tasks.CreateTaskUseCase
@@ -88,14 +89,22 @@ class TasksViewModelTest {
 
     @Test
     fun `addTask calls repository and reloads tasks`() = runTest {
-        val mockTask = Task("1", "test_user", "Новая задача", false, 2, null, null)
+        val mockTask = Task(
+            id = "1",
+            userId = "test_user",
+            title = "Новая задача",
+            isDone = false,
+            priority = TaskPriority.HIGH.value,
+            dueDate = null,
+            createdAt = null
+        )
         coEvery { mockRepository.createTask(any(), any(), any()) } returns Result.success(mockTask)
 
-        viewModel.addTask("Новая задача", 2, null, false)
+        viewModel.addTask("Новая задача", TaskPriority.HIGH.value, null, false)
         testDispatcher.scheduler.advanceUntilIdle()
 
         coVerify {
-            mockRepository.createTask("Новая задача", 2, null)
+            mockRepository.createTask("Новая задача", TaskPriority.HIGH.value, null)
         }
     }
 
@@ -112,8 +121,8 @@ class TasksViewModelTest {
     @Test
     fun `loadTasks updates state with fetched tasks`() = runTest {
         val mockTasks = listOf(
-            Task("1", "test_user", "Задача 1", false, 1, null, null),
-            Task("2", "test_user", "Задача 2", true, 2, null, null)
+            Task("1", "test_user", "Задача 1", false, TaskPriority.MEDIUM.value, null, null),
+            Task("2", "test_user", "Задача 2", true, TaskPriority.HIGH.value, null, null)
         )
         coEvery { mockRepository.getTasks() } returns Result.success(mockTasks)
 
@@ -145,30 +154,34 @@ class TasksViewModelTest {
         val state = viewModel.uiState.value
         assertTrue(state.dialogTask != null)
         assertEquals("", state.dialogTask!!.id)
+        assertEquals(TaskPriority.MEDIUM.value, state.dialogTask!!.priority)
     }
 
     @Test
     fun `updateTask calls updateTaskDetails with correct parameters`() = runTest {
-        val task = Task("task789", "test_user", "Старая задача", false, 1, null, null)
+        val task = Task(
+            id = "task789",
+            userId = "test_user",
+            title = "Старая задача",
+            isDone = false,
+            priority = TaskPriority.MEDIUM.value,
+            dueDate = null,
+            createdAt = null
+        )
         viewModel.showEditDialog(task)
 
         coEvery {
-            mockRepository.updateTaskDetails(
-                any(),
-                any(),
-                any(),
-                any()
-            )
+            mockRepository.updateTaskDetails(any(), any(), any(), any())
         } returns Result.success(true)
 
-        viewModel.updateTask("Новое название", 3, "2024-12-31")
+        viewModel.updateTask("Новое название", TaskPriority.HIGH.value, "2024-12-31")
         testDispatcher.scheduler.advanceUntilIdle()
 
         coVerify {
             mockRepository.updateTaskDetails(
                 taskId = "task789",
                 title = "Новое название",
-                priority = 3,
+                priority = TaskPriority.HIGH.value,
                 dueDate = "2024-12-31"
             )
         }
@@ -177,10 +190,10 @@ class TasksViewModelTest {
     @Test
     fun `tasks are sorted by isDone and priority`() = runTest {
         val mockTasks = listOf(
-            Task("1", "test_user", "Задача 1", true, 3, null, null),
-            Task("2", "test_user", "Задача 2", false, 1, null, null),
-            Task("3", "test_user", "Задача 3", false, 3, null, null),
-            Task("4", "test_user", "Задача 4", true, 1, null, null)
+            Task("1", "test_user", "Задача 1", true, TaskPriority.HIGH.value, null, null),
+            Task("2", "test_user", "Задача 2", false, TaskPriority.LOW.value, null, null),
+            Task("3", "test_user", "Задача 3", false, TaskPriority.HIGH.value, null, null),
+            Task("4", "test_user", "Задача 4", true, TaskPriority.LOW.value, null, null)
         )
         coEvery { mockRepository.getTasks() } returns Result.success(mockTasks)
 

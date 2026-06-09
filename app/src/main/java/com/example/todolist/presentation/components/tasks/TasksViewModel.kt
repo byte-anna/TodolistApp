@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.todolist.data.api.SessionExpiredException
 import com.example.todolist.data.local.UserPreferences
 import com.example.todolist.domain.model.Task
+import com.example.todolist.domain.model.TaskPriority
 import com.example.todolist.domain.usecase.tasks.CreatePostUseCase
 import com.example.todolist.domain.usecase.tasks.CreateTaskUseCase
 import com.example.todolist.domain.usecase.tasks.DeleteTaskUseCase
@@ -180,7 +181,7 @@ class TasksViewModel @Inject constructor(
                 userId = "",
                 title = "",
                 isDone = false,
-                priority = 2,
+                priority = TaskPriority.MEDIUM.value,
                 dueDate = null,
                 createdAt = ""
             )

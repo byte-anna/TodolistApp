@@ -60,6 +60,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.todolist.R
 import com.example.todolist.domain.model.Task
+import com.example.todolist.domain.model.TaskPriority
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -357,11 +358,10 @@ fun TaskItem(
     onToggle: () -> Unit,
     onEdit: () -> Unit
 ) {
-    val priorityColor = when (task.priority) {
-        1 -> Color.Red
-        2 -> Color(0xFFFFA500)
-        3 -> Color.Green
-        else -> Color.Gray
+    val priorityColor = when (TaskPriority.fromValue(task.priority)) {
+        TaskPriority.HIGH -> Color.Red
+        TaskPriority.MEDIUM -> Color(0xFFFFA500)
+        TaskPriority.LOW -> Color.Green
     }
 
     val dueDateText = task.dueDate?.let { dateStr ->
