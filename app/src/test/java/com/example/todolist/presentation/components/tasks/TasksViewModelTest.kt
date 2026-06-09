@@ -4,6 +4,12 @@ import android.app.Application
 import com.example.todolist.data.local.UserPreferences
 import com.example.todolist.domain.model.Task
 import com.example.todolist.domain.repository.TaskRepository
+import com.example.todolist.domain.usecase.tasks.CreatePostUseCase
+import com.example.todolist.domain.usecase.tasks.CreateTaskUseCase
+import com.example.todolist.domain.usecase.tasks.DeleteTaskUseCase
+import com.example.todolist.domain.usecase.tasks.GetTasksUseCase
+import com.example.todolist.domain.usecase.tasks.UpdateTaskDetailsUseCase
+import com.example.todolist.domain.usecase.tasks.UpdateTaskStatusUseCase
 import com.example.todolist.utils.NotificationScheduler
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -37,7 +43,6 @@ class TasksViewModelTest {
     fun setUp() {
         Dispatchers.setMain(testDispatcher)
 
-        // Мокаем object NotificationScheduler
         mockkObject(NotificationScheduler)
         every { NotificationScheduler.cancelReminder(any(), any()) } returns Unit
         every { NotificationScheduler.scheduleReminder(any(), any(), any(), any()) } returns Unit
@@ -47,7 +52,16 @@ class TasksViewModelTest {
         every { mockUserPreferences.userId } returns flowOf("test_user")
         coEvery { mockRepository.getTasks() } returns Result.success(emptyList())
 
-        viewModel = TasksViewModel(mockRepository, mockUserPreferences, mockApp)
+        viewModel = TasksViewModel(
+            getTasksUseCase = GetTasksUseCase(mockRepository),
+            createTaskUseCase = CreateTaskUseCase(mockRepository),
+            updateTaskStatusUseCase = UpdateTaskStatusUseCase(mockRepository),
+            updateTaskDetailsUseCase = UpdateTaskDetailsUseCase(mockRepository),
+            deleteTaskUseCase = DeleteTaskUseCase(mockRepository),
+            createPostUseCase = CreatePostUseCase(mockRepository),
+            userPreferences = mockUserPreferences,
+            application = mockApp
+        )
     }
 
     @After

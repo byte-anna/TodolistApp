@@ -5,7 +5,11 @@ import com.example.todolist.data.api.TodoApi
 import com.example.todolist.data.local.AppDatabase
 import com.example.todolist.data.local.TaskDao
 import com.example.todolist.data.local.UserPreferences
+import com.example.todolist.data.repository.AuthRepositoryImpl
+import com.example.todolist.data.repository.FeedRepositoryImpl
 import com.example.todolist.data.repository.TaskRepositoryImpl
+import com.example.todolist.domain.repository.AuthRepository
+import com.example.todolist.domain.repository.FeedRepository
 import com.example.todolist.domain.repository.TaskRepository
 import dagger.Module
 import dagger.Provides
@@ -44,6 +48,21 @@ object AppModule {
         userPreferences: UserPreferences
     ): TaskRepository {
         return TaskRepositoryImpl(api, taskDao, userPreferences)
+    }
+
+    @Provides
+    @Singleton
+    fun provideAuthRepository(
+        api: TodoApi,
+        userPreferences: UserPreferences
+    ): AuthRepository {
+        return AuthRepositoryImpl(api, userPreferences)
+    }
+
+    @Provides
+    @Singleton
+    fun provideFeedRepository(api: TodoApi): FeedRepository {
+        return FeedRepositoryImpl(api)
     }
 
     @Provides

@@ -3,9 +3,9 @@ package com.example.todolist.presentation.auth
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.todolist.data.api.AuthResponse
-import com.example.todolist.data.api.TodoApi
 import com.example.todolist.data.local.UserPreferences
+import com.example.todolist.domain.usecase.auth.LoginUseCase
+import com.example.todolist.domain.usecase.auth.RegisterUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -24,7 +24,8 @@ data class LoginUiState(
 
 @HiltViewModel
 class LoginViewModel @Inject constructor(
-    private val api: TodoApi,
+    private val loginUseCase: LoginUseCase,
+    private val registerUseCase: RegisterUseCase,
     private val userPreferences: UserPreferences,
     application: Application
 ) : AndroidViewModel(application) {
@@ -56,29 +57,25 @@ class LoginViewModel @Inject constructor(
         _uiState.value = _uiState.value.copy(isLoading = true, error = null)
 
         viewModelScope.launch {
-            try {
-                val registerResponse = api.register(email, password, displayName)
-                val authResponse = if (registerResponse.token.isNullOrBlank()) {
-                    api.login(email, password)
-                } else {
-                    registerResponse
+            registerUseCase(email, password, displayName)
+                .onSuccess { session ->
+                    _uiState.value = LoginUiState(
+                        isLoggedIn = true,
+                        userId = session.userId,
+                        userName = session.userName
+                    )
                 }
-                val userName = saveAuthenticatedSession(authResponse, displayName)
-                _uiState.value = LoginUiState(
-                    isLoggedIn = true,
-                    userId = authResponse.userId,
-                    userName = userName
-                )
-            } catch (e: Exception) {
-                val message = e.message ?: "Ошибка регистрации"
-                _uiState.value = _uiState.value.copy(
-                    isLoading = false,
-                    error = if (message.contains("409"))
-                        "Пользователь с таким email уже существует"
-                    else
-                        message
-                )
-            }
+                .onFailure { error ->
+                    val message = error.message ?: "Ошибка регистрации"
+                    _uiState.value = _uiState.value.copy(
+                        isLoading = false,
+                        error = if (message.contains("409")) {
+                            "Пользователь с таким email уже существует"
+                        } else {
+                            message
+                        }
+                    )
+                }
         }
     }
 
@@ -93,38 +90,26 @@ class LoginViewModel @Inject constructor(
         _uiState.value = _uiState.value.copy(isLoading = true, error = null)
 
         viewModelScope.launch {
-            try {
-                val response = api.login(email, password)
-                val userName = saveAuthenticatedSession(response)
-                _uiState.value = LoginUiState(
-                    isLoggedIn = true,
-                    userId = response.userId,
-                    userName = userName
-                )
-            } catch (e: Exception) {
-                val message = e.message ?: "Ошибка входа"
-                _uiState.value = _uiState.value.copy(
-                    isLoading = false,
-                    error = if (message.contains("401"))
-                        "Неверный email или пароль"
-                    else
-                        message
-                )
-            }
+            loginUseCase(email, password)
+                .onSuccess { session ->
+                    _uiState.value = LoginUiState(
+                        isLoggedIn = true,
+                        userId = session.userId,
+                        userName = session.userName
+                    )
+                }
+                .onFailure { error ->
+                    val message = error.message ?: "Ошибка входа"
+                    _uiState.value = _uiState.value.copy(
+                        isLoading = false,
+                        error = if (message.contains("401")) {
+                            "Неверный email или пароль"
+                        } else {
+                            message
+                        }
+                    )
+                }
         }
-    }
-
-    private suspend fun saveAuthenticatedSession(
-        response: AuthResponse,
-        fallbackUserName: String? = null
-    ): String {
-        val token = response.token?.takeIf { it.isNotBlank() }
-            ?: error("Сервер не вернул JWT токен")
-        userPreferences.saveUserId(response.userId)
-        val userName = response.displayName ?: fallbackUserName ?: response.email
-        userPreferences.saveUserName(userName)
-        userPreferences.saveAuthToken(token)
-        return userName
     }
 
     fun clearError() {

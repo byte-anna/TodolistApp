@@ -3,14 +3,15 @@ package com.example.todolist.presentation.components.feed
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.todolist.data.api.SessionExpiredException
-import com.example.todolist.data.api.TodoApi
-import dagger.hilt.android.lifecycle.HiltViewModel
-import javax.inject.Inject
 import com.example.todolist.domain.model.Post
+import com.example.todolist.domain.usecase.feed.GetPostsUseCase
+import com.example.todolist.domain.usecase.feed.TogglePostLikeUseCase
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 data class FeedUiState(
     val posts: List<Post> = emptyList(),
@@ -21,7 +22,8 @@ data class FeedUiState(
 
 @HiltViewModel
 class FeedViewModel @Inject constructor(
-    private val api: TodoApi
+    private val getPostsUseCase: GetPostsUseCase,
+    private val togglePostLikeUseCase: TogglePostLikeUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(FeedUiState())
@@ -34,15 +36,16 @@ class FeedViewModel @Inject constructor(
     fun loadPosts() {
         _uiState.value = _uiState.value.copy(isLoading = true, error = null)
         viewModelScope.launch {
-            try {
-                val posts = api.getPosts()
-                _uiState.value = _uiState.value.copy(
-                    posts = posts,
-                    isLoading = false
-                )
-            } catch (e: Exception) {
-                handleError(e, isLoading = false)
-            }
+            getPostsUseCase()
+                .onSuccess { posts ->
+                    _uiState.value = _uiState.value.copy(
+                        posts = posts,
+                        isLoading = false
+                    )
+                }
+                .onFailure { error ->
+                    handleError(error, isLoading = false)
+                }
         }
     }
 
@@ -56,13 +59,13 @@ class FeedViewModel @Inject constructor(
 
     fun toggleLike(postId: String) {
         viewModelScope.launch {
-            try {
-                api.toggleLike(postId)
-                // Перезагружаем посты, чтобы обновить счетчик
-                loadPosts()
-            } catch (e: Exception) {
-                handleError(e)
-            }
+            togglePostLikeUseCase(postId)
+                .onSuccess {
+                    loadPosts()
+                }
+                .onFailure { error ->
+                    handleError(error)
+                }
         }
     }
 }
